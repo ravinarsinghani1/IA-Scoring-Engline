@@ -32,18 +32,32 @@ SQLite to Postgres later touches only the DB adapter and SQL dialect, not app lo
 
 ## Running locally
 
-Backend:
+### One command (recommended)
+
+From the project root:
+
 ```bash
-cd server
-npm install
-npm run dev        # starts Express on http://localhost:4000
+npm run setup      # first time only — installs client + server dependencies
+npm run dev        # starts BOTH the backend and frontend together
 ```
 
-Frontend (separate terminal):
+Then open **http://localhost:5173**.
+
+- `npm run dev` starts the Express API (port 4000) and the Vite frontend (port
+  5173) in a single terminal, with output prefixed `[server]` / `[client]`.
+- It automatically frees ports 4000/5173 first (via the `predev` step), so a
+  leftover copy from a previous run won't cause an `EADDRINUSE` error.
+- **To stop:** press `Ctrl+C` once in that terminal — it shuts both down.
+  (Don't use `npm run free-ports` to stop it; the server runs under `node
+  --watch`, which will just respawn. `free-ports` is only a pre-start cleanup.)
+
+### Running the two halves separately (optional)
+
+Useful when debugging one side. Use two terminals:
+
 ```bash
-cd client
-npm install
-npm run dev        # starts Vite on http://localhost:5173
+cd server && npm run dev        # Express on http://localhost:4000
+cd client && npm run dev        # Vite on http://localhost:5173
 ```
 
 The frontend proxies `/api/*` to the backend during development.

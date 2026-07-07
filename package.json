@@ -1,0 +1,15 @@
+{
+  "name": "ia-scoring-engine",
+  "version": "0.1.0",
+  "private": true,
+  "description": "IB Math IA Scoring Engine — root launcher for the client + server",
+  "scripts": {
+    "setup": "npm --prefix server install && npm --prefix client install",
+    "predev": "npm run free-ports",
+    "dev": "concurrently -k -n server,client -c blue,green \"npm --prefix server run dev\" \"npm --prefix client run dev\"",
+    "free-ports": "lsof -ti tcp:4000,tcp:5173,tcp:5174 | xargs kill 2>/dev/null || true"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.2"
+  }
+}
