@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "client",
+      "runtimeExecutable": "/Users/admin/.nvm/versions/node/v24.18.0/bin/node",
+      "runtimeArgs": [
+        "/Users/admin/Claude/IA System/client/node_modules/vite/bin/vite.js"
+      ],
+      "cwd": "client",
+      "port": 5173
+    },
+    {
+      "name": "server",
+      "runtimeExecutable": "/Users/admin/.nvm/versions/node/v24.18.0/bin/node",
+      "runtimeArgs": ["--watch", "/Users/admin/Claude/IA System/server/src/index.js"],
+      "cwd": "server",
+      "port": 4000
+    }
+  ]
+}

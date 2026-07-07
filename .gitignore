@@ -1,0 +1,24 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# SQLite database files (local dev data — do not commit)
+server/data/*.db
+server/data/*.db-journal
+server/data/*.db-wal
+server/data/*.db-shm
+
+# Environment / secrets
+.env
+.env.local
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
