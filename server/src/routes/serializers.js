@@ -8,3 +8,11 @@ export function serializeDraft(row) {
     authenticity_gate_passed: Boolean(row.authenticity_gate_passed),
   };
 }
+
+export function serializeScore(row) {
+  if (!row) return row;
+  return {
+    ...row,
+    changed_since_last_draft: Boolean(row.changed_since_last_draft),
+  };
+}

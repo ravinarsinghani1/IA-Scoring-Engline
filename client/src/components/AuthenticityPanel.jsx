@@ -22,7 +22,8 @@ export default function AuthenticityPanel({ draft, onChanged, onError }) {
   const [busy, setBusy] = useState(false);
 
   const [scoring, setScoring] = useState(false);
-  const [scoreMsg, setScoreMsg] = useState(null);
+  const [scoreError, setScoreError] = useState(null);
+  const [scores, setScores] = useState(null);
 
   const record = async (e) => {
     e.preventDefault();
@@ -31,7 +32,8 @@ export default function AuthenticityPanel({ draft, onChanged, onError }) {
     onError?.(null);
     try {
       await api.recordAuthenticity(draft.id, Number(similarity), Number(aiLabel));
-      setScoreMsg(null);
+      setScores(null);
+      setScoreError(null);
       await onChanged?.();
       setOpen(false);
     } catch (err) {
@@ -43,13 +45,13 @@ export default function AuthenticityPanel({ draft, onChanged, onError }) {
 
   const attemptScore = async () => {
     setScoring(true);
-    setScoreMsg(null);
+    setScoreError(null);
     onError?.(null);
     try {
       const res = await api.scoreDraft(draft.id);
-      setScoreMsg({ ok: true, text: res.message });
+      setScores(res.scores);
     } catch (err) {
-      setScoreMsg({ ok: false, text: err.message });
+      setScoreError(err.message);
     } finally {
       setScoring(false);
     }
@@ -100,12 +102,21 @@ export default function AuthenticityPanel({ draft, onChanged, onError }) {
       <ScoringGate
         passed={passed}
         scoring={scoring}
-        scoreMsg={scoreMsg}
+        scoreError={scoreError}
+        scores={scores}
         onScore={attemptScore}
       />
     </div>
   );
 }
+
+const CRITERION_NAMES = {
+  A: 'Presentation',
+  B: 'Mathematical communication',
+  C: 'Personal engagement',
+  D: 'Reflection',
+  E: 'Use of mathematics',
+};
 
 function StatusBadge({ checked, passed, draft }) {
   if (!checked) {
@@ -150,7 +161,7 @@ function ScoreInput({ label, value, onChange }) {
 }
 
 // Visibly represents the hard gate: scoring is locked until the gate passes.
-function ScoringGate({ passed, scoring, scoreMsg, onScore }) {
+function ScoringGate({ passed, scoring, scoreError, scores, onScore }) {
   return (
     <div className="mt-3 border-t border-slate-200 pt-3">
       {passed ? (
@@ -161,17 +172,19 @@ function ScoringGate({ passed, scoring, scoreMsg, onScore }) {
             disabled={scoring}
             className="rounded-md border border-slate-800 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 transition hover:bg-slate-800 hover:text-white disabled:opacity-40"
           >
-            {scoring ? 'Scoring…' : 'Score this draft'}
+            {scoring
+              ? 'Scoring…'
+              : scores
+                ? 'Re-score this draft'
+                : 'Score this draft'}
           </button>
-          {scoreMsg && (
-            <p
-              className={`mt-2 text-xs ${
-                scoreMsg.ok ? 'text-slate-600' : 'text-red-600'
-              }`}
-            >
-              {scoreMsg.text}
+          {scoring && (
+            <p className="mt-2 text-xs text-slate-400">
+              Assessing with Claude — this can take up to a minute…
             </p>
           )}
+          {scoreError && <p className="mt-2 text-xs text-red-600">{scoreError}</p>}
+          {scores && <ScoreList scores={scores} />}
         </div>
       ) : (
         <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -184,5 +197,42 @@ function ScoringGate({ passed, scoring, scoreMsg, onScore }) {
         </div>
       )}
     </div>
+  );
+}
+
+// Compact per-criterion score display. Full student / teacher views come in
+// later steps; this is enough to sanity-check the engine's output.
+function ScoreList({ scores }) {
+  return (
+    <ul className="mt-3 space-y-2">
+      {scores.map((s) => (
+        <li
+          key={s.criterion}
+          className="rounded-md border border-slate-200 bg-white p-2.5"
+        >
+          <div className="flex items-baseline justify-between">
+            <span className="text-xs font-semibold text-slate-800">
+              Criterion {s.criterion} · {CRITERION_NAMES[s.criterion] || ''}
+            </span>
+            <span className="text-xs font-semibold text-slate-900">
+              {s.engine_mark}/{s.max_mark}
+              <span className="ml-1 font-normal text-slate-400">
+                ({s.confidence_tier} confidence)
+              </span>
+            </span>
+          </div>
+          <p className="mt-1 text-xs text-slate-600">
+            <span className="font-medium text-slate-500">Why: </span>
+            {s.reasoning_summary}
+          </p>
+          {s.engine_mark < s.max_mark && (
+            <p className="mt-1 text-xs text-slate-600">
+              <span className="font-medium text-slate-500">To improve: </span>
+              {s.improvement_suggestion}
+            </p>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }

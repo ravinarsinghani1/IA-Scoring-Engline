@@ -47,6 +47,17 @@ export async function getMaxDraftNumber(explorationId) {
   return row?.max ?? 0;
 }
 
+// The draft immediately before `draftNumber` in the same exploration (the
+// highest-numbered draft below it), used to compute "changed since last draft".
+export async function getPreviousDraft(explorationId, draftNumber) {
+  return db.get(
+    `SELECT * FROM draft
+      WHERE exploration_id = ? AND draft_number < ?
+      ORDER BY draft_number DESC LIMIT 1`,
+    [explorationId, draftNumber]
+  );
+}
+
 // --- Authenticity gate (Step 2 will drive these; columns exist now) ---
 
 export async function setAuthenticity(draftId, { similarityScore, aiLabelScore, gatePassed }) {

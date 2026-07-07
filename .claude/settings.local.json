@@ -6,7 +6,9 @@
       "Bash(curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh)",
       "Bash(bash)",
       "Bash(sqlite3 \"/Users/admin/Claude/IA System/server/data/ia.db\" \"PRAGMA foreign_keys=ON; DELETE FROM draft WHERE exploration_id NOT IN \\(SELECT id FROM exploration\\);\")",
-      "Bash(sqlite3 -header -column \"/Users/admin/Claude/IA System/server/data/ia.db\" \"SELECT d.id, e.student_name, d.draft_number FROM draft d JOIN exploration e ON e.id=d.exploration_id;\")"
+      "Bash(sqlite3 -header -column \"/Users/admin/Claude/IA System/server/data/ia.db\" \"SELECT d.id, e.student_name, d.draft_number FROM draft d JOIN exploration e ON e.id=d.exploration_id;\")",
+      "Skill(claude-api)",
+      "Skill(claude-api:*)"
     ]
   }
 }

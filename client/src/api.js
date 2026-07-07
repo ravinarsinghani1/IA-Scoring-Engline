@@ -28,7 +28,8 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ similarityScore, aiLabelScore }),
     }),
-  // Attempts to score a draft. Returns 409 (thrown as an error) if the
-  // authenticity gate has not passed. Real scoring lands in Step 3.
+  // Scores a draft with Claude. Returns 409 (thrown as an error) if the
+  // authenticity gate has not passed, or 503 if no API key is configured.
   scoreDraft: (draftId) => request(`/drafts/${draftId}/score`, { method: 'POST' }),
+  getScores: (draftId) => request(`/drafts/${draftId}/scores`),
 };

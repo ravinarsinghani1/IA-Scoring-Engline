@@ -29,12 +29,14 @@ app.use('/api/drafts', draftsRouter);
 app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }));
 
 // Central error handler. Routes/services may set `err.status` (e.g. 400 for
-// validation) and it will be surfaced with the error message; anything else is
-// treated as an unexpected 500.
+// validation). Client errors (4xx) always surface their message; 5xx are masked
+// as a generic message UNLESS `err.expose` is set (used for intentional,
+// safe-to-show conditions like "no API key configured").
 app.use((err, _req, res, _next) => {
   const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
   if (status >= 500) console.error('[error]', err);
-  res.status(status).json({ error: status >= 500 ? 'internal server error' : err.message });
+  const showMessage = status < 500 || err.expose === true;
+  res.status(status).json({ error: showMessage ? err.message : 'internal server error' });
 });
 
 const PORT = process.env.PORT || 4000;
