@@ -11,6 +11,9 @@ server/data/*.db-journal
 server/data/*.db-wal
 server/data/*.db-shm
 
+# Uploaded student PDFs (real student data — never commit)
+server/data/uploads/
+
 # Environment / secrets
 .env
 .env.local

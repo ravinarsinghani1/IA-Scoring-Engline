@@ -23,6 +23,19 @@ export const api = {
       method: 'POST',
       body: JSON.stringify({ rawText }),
     }),
+  // Uploads a PDF as a draft (multipart). The browser sets the multipart
+  // boundary, so we must NOT set Content-Type ourselves.
+  submitDraftFile: async (explorationId, file) => {
+    const form = new FormData();
+    form.append('file', file);
+    const res = await fetch(`/api/explorations/${explorationId}/drafts`, {
+      method: 'POST',
+      body: form,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);
+    return data;
+  },
   recordAuthenticity: (draftId, similarityScore, aiLabelScore) =>
     request(`/drafts/${draftId}/authenticity`, {
       method: 'POST',

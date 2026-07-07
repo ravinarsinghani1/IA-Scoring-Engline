@@ -10,14 +10,33 @@ export async function createDraft({
   extractedMathContent = null,
   wordCount = 0,
   pageCount = 0,
+  sourceKind = 'text',
+  sourceFileName = null,
 }) {
   const result = await db.run(
     `INSERT INTO draft
-       (exploration_id, draft_number, raw_text, extracted_math_content, word_count, page_count)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [explorationId, draftNumber, rawText, extractedMathContent, wordCount, pageCount]
+       (exploration_id, draft_number, raw_text, extracted_math_content, word_count,
+        page_count, source_kind, source_file_name)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+    [
+      explorationId,
+      draftNumber,
+      rawText,
+      extractedMathContent,
+      wordCount,
+      pageCount,
+      sourceKind,
+      sourceFileName,
+    ]
   );
   return getDraftById(result.lastInsertRowid);
+}
+
+// Records where the uploaded source file was saved (known only after the draft
+// row exists, since the filename is keyed by draft id).
+export async function setDraftSourceFilePath(draftId, filePath) {
+  await db.run(`UPDATE draft SET source_file_path = ? WHERE id = ?`, [filePath, draftId]);
+  return getDraftById(draftId);
 }
 
 export async function getDraftById(id) {

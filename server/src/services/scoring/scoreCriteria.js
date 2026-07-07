@@ -3,7 +3,9 @@
 // schema. Written generically (takes a list of criterion keys) so later build
 // steps can reuse it for D, E and C.
 
+import fs from 'node:fs';
 import { getAnthropicClient, SCORING_MODEL } from '../anthropicClient.js';
+import { readPdfBase64 } from '../pdf.js';
 import { CRITERIA } from './criteria.js';
 
 const SYSTEM_PROMPT = `You are an experienced IB Mathematics: Applications and Interpretation (AI) examiner, moderating a student's Internal Assessment ("the exploration").
@@ -58,25 +60,54 @@ function buildSchema(keys) {
 
 /**
  * Score the given criteria for a draft.
+ *
+ * When `pdfPath` points to a stored PDF, the ACTUAL PDF is sent to the model so
+ * figures, graphs and equations are seen. Otherwise the extracted/pasted text
+ * is used. `rawText` is always included as a fallback / transcript.
+ *
  * @param {string[]} keys e.g. ['A','B']
- * @param {{ rawText: string, level: 'SL'|'HL' }} draft
+ * @param {{ rawText: string, level: 'SL'|'HL', pdfPath?: string|null }} draft
  * @returns {Promise<Array<{criterion, engine_mark, max_mark, confidence_tier, reasoning_summary, improvement_suggestion}>>}
  */
-export async function scoreCriteria(keys, { rawText, level }) {
+export async function scoreCriteria(keys, { rawText, level, pdfPath = null }) {
   const client = getAnthropicClient();
   const schema = buildSchema(keys);
 
-  const userPrompt = `This is a Mathematics AI ${level} exploration.
+  const hasPdf = pdfPath && fs.existsSync(pdfPath);
+
+  const instructions = `This is a Mathematics AI ${level} exploration.
 
 Assess the following criteria using best-fit. ${
     keys.length > 1 ? 'Score each independently.' : ''
   }
 
-${keys.map(criterionBlock).join('\n\n')}
+${keys.map(criterionBlock).join('\n\n')}`;
+
+  // For a PDF, place the document block first, then the instructions — and tell
+  // the model the figures/equations in the PDF are part of the assessment.
+  const userContent = hasPdf
+    ? [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: readPdfBase64(pdfPath) },
+        },
+        {
+          type: 'text',
+          text: `${instructions}
+
+The student's full exploration is the attached PDF. Assess what you see in it directly — figures, graphs, tables and mathematical notation included.`,
+        },
+      ]
+    : [
+        {
+          type: 'text',
+          text: `${instructions}
 
 === STUDENT EXPLORATION TEXT (begins) ===
 ${rawText}
-=== STUDENT EXPLORATION TEXT (ends) ===`;
+=== STUDENT EXPLORATION TEXT (ends) ===`,
+        },
+      ];
 
   const response = await client.messages.create({
     model: SCORING_MODEL,
@@ -87,7 +118,7 @@ ${rawText}
       format: { type: 'json_schema', schema },
     },
     system: SYSTEM_PROMPT,
-    messages: [{ role: 'user', content: userPrompt }],
+    messages: [{ role: 'user', content: userContent }],
   });
 
   const textBlock = response.content.find((b) => b.type === 'text');

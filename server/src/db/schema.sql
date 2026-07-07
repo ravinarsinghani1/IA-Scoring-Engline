@@ -27,6 +27,12 @@ CREATE TABLE IF NOT EXISTS draft (
   page_count                    INTEGER NOT NULL DEFAULT 0,
   submitted_at                  TEXT NOT NULL DEFAULT (datetime('now')),
 
+  -- Original uploaded source (PDF). When present, the actual file is sent to
+  -- the model so figures, graphs and equations are seen. NULL for paste-text.
+  source_kind                   TEXT NOT NULL DEFAULT 'text',  -- 'text' | 'pdf'
+  source_file_name              TEXT,
+  source_file_path              TEXT,
+
   -- Authenticity gate. NULL until checked. Gate must pass before scoring.
   authenticity_similarity_score REAL,                 -- nullable until checked
   authenticity_ai_label_score   REAL,                 -- nullable until checked

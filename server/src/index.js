@@ -1,18 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 
-import { db } from './db/connection.js';
+import { ensureSchema } from './db/ensureSchema.js';
 import explorationsRouter from './routes/explorations.js';
 import draftsRouter from './routes/drafts.js';
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
-// Ensure schema exists on startup (idempotent). Keeps local dev frictionless.
-db.raw.exec(fs.readFileSync(path.join(__dirname, 'db', 'schema.sql'), 'utf8'));
+// Ensure schema (and any later-added columns) exist on startup. Idempotent.
+ensureSchema();
 
 const app = express();
 app.use(cors());
@@ -33,6 +28,14 @@ app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }));
 // as a generic message UNLESS `err.expose` is set (used for intentional,
 // safe-to-show conditions like "no API key configured").
 app.use((err, _req, res, _next) => {
+  // Multer upload errors (e.g. file too large) are client errors.
+  if (err && err.name === 'MulterError') {
+    const msg =
+      err.code === 'LIMIT_FILE_SIZE'
+        ? 'PDF is too large (max 32 MB).'
+        : `Upload error: ${err.message}`;
+    return res.status(400).json({ error: msg });
+  }
   const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
   if (status >= 500) console.error('[error]', err);
   const showMessage = status < 500 || err.expose === true;

@@ -8,7 +8,12 @@
       "Bash(sqlite3 \"/Users/admin/Claude/IA System/server/data/ia.db\" \"PRAGMA foreign_keys=ON; DELETE FROM draft WHERE exploration_id NOT IN \\(SELECT id FROM exploration\\);\")",
       "Bash(sqlite3 -header -column \"/Users/admin/Claude/IA System/server/data/ia.db\" \"SELECT d.id, e.student_name, d.draft_number FROM draft d JOIN exploration e ON e.id=d.exploration_id;\")",
       "Skill(claude-api)",
-      "Skill(claude-api:*)"
+      "Skill(claude-api:*)",
+      "Bash(ls -la .env)",
+      "Bash(python3 -)",
+      "Bash(node -e \"console.log\\('version', require\\('pdf-parse/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('pdf-parse/package.json'\\).exports, null, 2\\)\\)\")",
+      "Bash(node -e \"const p=require\\('pdf-parse/package.json'\\); console.log\\('main:',p.main,'type:',p.type,'module:',p.module\\)\")"
     ]
   }
 }

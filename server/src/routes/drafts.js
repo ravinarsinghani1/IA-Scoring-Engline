@@ -68,10 +68,12 @@ router.post('/:id/score', async (req, res, next) => {
 
     const exploration = await getExplorationById(draft.exploration_id);
 
-    // Score the currently-implemented criteria with Claude.
+    // Score the currently-implemented criteria with Claude. When the draft was
+    // uploaded as a PDF, send the actual file so figures/equations are seen.
     const results = await scoreCriteria(IMPLEMENTED_CRITERIA, {
       rawText: draft.raw_text,
       level: exploration.level,
+      pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,
     });
 
     // Compute "changed since last draft" against the previous draft's scores.
