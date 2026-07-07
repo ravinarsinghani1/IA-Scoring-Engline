@@ -13,6 +13,7 @@ import { serializeDraft, serializeScore } from './serializers.js';
 import { parseScore, evaluateGate, gateBlockReason } from '../services/authenticity.js';
 import { scoreCriteria } from '../services/scoring/scoreCriteria.js';
 import { IMPLEMENTED_CRITERIA } from '../services/scoring/criteria.js';
+import { runOriginalityCoach } from '../services/originality/coach.js';
 
 const router = Router();
 
@@ -82,6 +83,26 @@ router.post('/:id/score', async (req, res, next) => {
 
     const saved = await saveScores(draft.id, results, prevScores);
     res.json({ status: 'scored', scores: saved.map(serializeScore) });
+  } catch (err) {
+    next(err);
+  }
+});
+
+// Originality coach — the authenticity value-add beyond Turnitin. Not gated by
+// the authenticity check: the point is to help the student improve BEFORE the
+// Turnitin gate. Needs an API key (503 otherwise).
+router.post('/:id/originality', async (req, res, next) => {
+  try {
+    const draft = await getDraftById(req.params.id);
+    if (!draft) return res.status(404).json({ error: 'draft not found' });
+    const exploration = await getExplorationById(draft.exploration_id);
+
+    const report = await runOriginalityCoach({
+      rawText: draft.raw_text,
+      level: exploration.level,
+      pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,
+    });
+    res.json(report);
   } catch (err) {
     next(err);
   }

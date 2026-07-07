@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../api.js';
 import AuthenticityPanel from './AuthenticityPanel.jsx';
+import OriginalityCoach from './OriginalityCoach.jsx';
 
 export default function ExplorationDetail({ explorationId, onDraftSubmitted, onError }) {
   const [exploration, setExploration] = useState(null);
@@ -160,6 +161,7 @@ function DraftCard({ draft, onChanged, onError }) {
         {draft.raw_text || <span className="italic text-slate-400">PDF uploaded (no extractable text preview).</span>}
       </p>
 
+      <OriginalityCoach draft={draft} onError={onError} />
       <AuthenticityPanel draft={draft} onChanged={onChanged} onError={onError} />
     </li>
   );

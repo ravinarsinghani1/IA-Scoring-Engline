@@ -45,4 +45,6 @@ export const api = {
   // authenticity gate has not passed, or 503 if no API key is configured.
   scoreDraft: (draftId) => request(`/drafts/${draftId}/score`, { method: 'POST' }),
   getScores: (draftId) => request(`/drafts/${draftId}/scores`),
+  // Originality coach — integrity coaching beyond Turnitin. Needs an API key.
+  runOriginality: (draftId) => request(`/drafts/${draftId}/originality`, { method: 'POST' }),
 };

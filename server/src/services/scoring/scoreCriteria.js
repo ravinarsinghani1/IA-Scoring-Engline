@@ -3,9 +3,8 @@
 // schema. Written generically (takes a list of criterion keys) so later build
 // steps can reuse it for D, E and C.
 
-import fs from 'node:fs';
 import { getAnthropicClient, SCORING_MODEL } from '../anthropicClient.js';
-import { readPdfBase64 } from '../pdf.js';
+import { buildExplorationContent } from '../promptContent.js';
 import { CRITERIA } from './criteria.js';
 
 const SYSTEM_PROMPT = `You are an experienced IB Mathematics: Applications and Interpretation (AI) examiner, moderating a student's Internal Assessment ("the exploration").
@@ -73,8 +72,6 @@ export async function scoreCriteria(keys, { rawText, level, pdfPath = null }) {
   const client = getAnthropicClient();
   const schema = buildSchema(keys);
 
-  const hasPdf = pdfPath && fs.existsSync(pdfPath);
-
   const instructions = `This is a Mathematics AI ${level} exploration.
 
 Assess the following criteria using best-fit. ${
@@ -83,31 +80,13 @@ Assess the following criteria using best-fit. ${
 
 ${keys.map(criterionBlock).join('\n\n')}`;
 
-  // For a PDF, place the document block first, then the instructions — and tell
-  // the model the figures/equations in the PDF are part of the assessment.
-  const userContent = hasPdf
-    ? [
-        {
-          type: 'document',
-          source: { type: 'base64', media_type: 'application/pdf', data: readPdfBase64(pdfPath) },
-        },
-        {
-          type: 'text',
-          text: `${instructions}
-
-The student's full exploration is the attached PDF. Assess what you see in it directly — figures, graphs, tables and mathematical notation included.`,
-        },
-      ]
-    : [
-        {
-          type: 'text',
-          text: `${instructions}
-
-=== STUDENT EXPLORATION TEXT (begins) ===
-${rawText}
-=== STUDENT EXPLORATION TEXT (ends) ===`,
-        },
-      ];
+  const userContent = buildExplorationContent({
+    pdfPath,
+    rawText,
+    instructions,
+    pdfSuffix:
+      "The student's full exploration is the attached PDF. Assess what you see in it directly — figures, graphs, tables and mathematical notation included.",
+  });
 
   const response = await client.messages.create({
     model: SCORING_MODEL,
