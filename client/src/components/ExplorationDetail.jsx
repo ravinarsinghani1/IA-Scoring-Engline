@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../api.js';
+import AuthenticityPanel from './AuthenticityPanel.jsx';
 
 export default function ExplorationDetail({ explorationId, onDraftSubmitted, onError }) {
   const [exploration, setExploration] = useState(null);
@@ -92,7 +93,7 @@ export default function ExplorationDetail({ explorationId, onDraftSubmitted, onE
         ) : (
           <ul className="space-y-3">
             {drafts.map((d) => (
-              <DraftCard key={d.id} draft={d} />
+              <DraftCard key={d.id} draft={d} onChanged={load} onError={onError} />
             ))}
           </ul>
         )}
@@ -101,7 +102,7 @@ export default function ExplorationDetail({ explorationId, onDraftSubmitted, onE
   );
 }
 
-function DraftCard({ draft }) {
+function DraftCard({ draft, onChanged, onError }) {
   return (
     <li className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex items-center justify-between">
@@ -116,29 +117,14 @@ function DraftCard({ draft }) {
       <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs text-slate-500">
         <span>{draft.word_count.toLocaleString()} words</span>
         <span>~{draft.page_count} page{draft.page_count === 1 ? '' : 's'}</span>
-        <AuthenticityBadge draft={draft} />
       </div>
 
       <p className="mt-3 line-clamp-3 text-sm text-slate-600">
         {draft.raw_text}
       </p>
-    </li>
-  );
-}
 
-// Placeholder until Step 2 wires the real authenticity gate.
-function AuthenticityBadge({ draft }) {
-  if (draft.authenticity_gate_passed) {
-    return (
-      <span className="rounded bg-green-50 px-1.5 py-0.5 font-medium text-green-700">
-        Authenticity gate passed
-      </span>
-    );
-  }
-  return (
-    <span className="rounded bg-amber-50 px-1.5 py-0.5 font-medium text-amber-700">
-      Authenticity gate: not checked
-    </span>
+      <AuthenticityPanel draft={draft} onChanged={onChanged} onError={onError} />
+    </li>
   );
 }
 

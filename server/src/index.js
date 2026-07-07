@@ -28,10 +28,13 @@ app.use('/api/drafts', draftsRouter);
 // 404 for unknown API routes
 app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }));
 
-// Central error handler
+// Central error handler. Routes/services may set `err.status` (e.g. 400 for
+// validation) and it will be surfaced with the error message; anything else is
+// treated as an unexpected 500.
 app.use((err, _req, res, _next) => {
-  console.error('[error]', err);
-  res.status(500).json({ error: 'internal server error' });
+  const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+  if (status >= 500) console.error('[error]', err);
+  res.status(status).json({ error: status >= 500 ? 'internal server error' : err.message });
 });
 
 const PORT = process.env.PORT || 4000;

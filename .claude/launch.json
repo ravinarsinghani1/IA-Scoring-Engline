@@ -8,7 +8,8 @@
         "/Users/admin/Claude/IA System/client/node_modules/vite/bin/vite.js"
       ],
       "cwd": "client",
-      "port": 5173
+      "port": 5173,
+      "autoPort": true
     },
     {
       "name": "server",
