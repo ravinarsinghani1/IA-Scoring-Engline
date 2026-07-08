@@ -24,6 +24,11 @@ const ADDED_COLUMNS = {
     { name: 'range_low', ddl: 'range_low INTEGER' },
     { name: 'range_high', ddl: 'range_high INTEGER' },
   ],
+  validation_record: [
+    { name: 'draft_id', ddl: 'draft_id INTEGER' },
+    { name: 'engine_range_low', ddl: 'engine_range_low INTEGER' },
+    { name: 'engine_range_high', ddl: 'engine_range_high INTEGER' },
+  ],
 };
 
 export function ensureSchema() {

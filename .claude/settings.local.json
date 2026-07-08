@@ -16,7 +16,8 @@
       "Bash(node -e \"const p=require\\('pdf-parse/package.json'\\); console.log\\('main:',p.main,'type:',p.type,'module:',p.module\\)\")",
       "Bash(lsof -ti tcp:4000)",
       "Bash(sqlite3 \"data/ia.db\" \"UPDATE exploration SET level='SL' WHERE student_name='Hina';\")",
-      "Bash(sqlite3 -header -column \"data/ia.db\" \"SELECT id, student_name, subject, level FROM exploration;\")"
+      "Bash(sqlite3 -header -column \"data/ia.db\" \"SELECT id, student_name, subject, level FROM exploration;\")",
+      "Bash(sqlite3 -header -column \"data/ia.db\" \"SELECT criterion, engine_mark, range_low, range_high, confidence_tier FROM criterion_score WHERE draft_id=7 ORDER BY criterion;\")"
     ]
   }
 }

@@ -77,13 +77,17 @@ CREATE INDEX IF NOT EXISTS idx_criterion_score_draft ON criterion_score(draft_id
 CREATE TABLE IF NOT EXISTS validation_record (
   id                  INTEGER PRIMARY KEY AUTOINCREMENT,
   exploration_id      INTEGER NOT NULL,
+  draft_id            INTEGER,                        -- which draft was validated
   criterion           TEXT NOT NULL,
-  engine_mark         INTEGER,
+  engine_mark         INTEGER,                        -- NULL for C (range-based)
+  engine_range_low    INTEGER,                        -- C only
+  engine_range_high   INTEGER,                        -- C only
   teacher_mark        INTEGER,
   ib_moderated_mark   INTEGER,                        -- nullable; released months later
-  agreement_delta     INTEGER,                        -- teacher_mark - engine_mark (or as computed)
+  agreement_delta     INTEGER,                        -- teacher_mark - engine_mark (0 if within C range)
 
   FOREIGN KEY (exploration_id) REFERENCES exploration(id) ON DELETE CASCADE,
+  UNIQUE (exploration_id, criterion),
   CHECK (criterion IN ('A', 'B', 'C', 'D', 'E'))
 );
 

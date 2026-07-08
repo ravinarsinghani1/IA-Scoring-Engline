@@ -3,8 +3,10 @@ import { api } from './api.js';
 import NewExplorationForm from './components/NewExplorationForm.jsx';
 import ExplorationList from './components/ExplorationList.jsx';
 import ExplorationDetail from './components/ExplorationDetail.jsx';
+import ValidationView from './components/ValidationView.jsx';
 
 export default function App() {
+  const [view, setView] = useState('scoring'); // 'scoring' | 'validation'
   const [explorations, setExplorations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [error, setError] = useState(null);
@@ -39,6 +41,14 @@ export default function App() {
           <p className="mt-1 text-sm text-slate-500">
             Advisory feedback only — every score is provisional pending the teacher's judgment.
           </p>
+          <nav className="mt-3 flex gap-2">
+            <NavTab active={view === 'scoring'} onClick={() => setView('scoring')}>
+              Scoring
+            </NavTab>
+            <NavTab active={view === 'validation'} onClick={() => setView('validation')}>
+              Validation harness
+            </NavTab>
+          </nav>
         </div>
       </header>
 
@@ -49,31 +59,51 @@ export default function App() {
           </div>
         )}
 
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-[340px_1fr]">
-          <aside className="space-y-6">
-            <NewExplorationForm onCreated={handleCreated} onError={setError} />
-            <ExplorationList
-              explorations={explorations}
-              selectedId={selectedId}
-              onSelect={setSelectedId}
-            />
-          </aside>
-
-          <section>
-            {selectedId ? (
-              <ExplorationDetail
-                explorationId={selectedId}
-                onDraftSubmitted={refresh}
-                onError={setError}
+        {view === 'scoring' ? (
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-[340px_1fr]">
+            <aside className="space-y-6">
+              <NewExplorationForm onCreated={handleCreated} onError={setError} />
+              <ExplorationList
+                explorations={explorations}
+                selectedId={selectedId}
+                onSelect={setSelectedId}
               />
-            ) : (
-              <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-400">
-                Select an exploration, or create one to get started.
-              </div>
-            )}
-          </section>
-        </div>
+            </aside>
+
+            <section>
+              {selectedId ? (
+                <ExplorationDetail
+                  explorationId={selectedId}
+                  onDraftSubmitted={refresh}
+                  onError={setError}
+                />
+              ) : (
+                <div className="flex h-64 items-center justify-center rounded-lg border border-dashed border-slate-300 text-sm text-slate-400">
+                  Select an exploration, or create one to get started.
+                </div>
+              )}
+            </section>
+          </div>
+        ) : (
+          <ValidationView explorations={explorations} onError={setError} />
+        )}
       </main>
     </div>
+  );
+}
+
+function NavTab({ active, onClick, children }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+        active
+          ? 'bg-slate-900 text-white'
+          : 'text-slate-600 hover:bg-slate-100'
+      }`}
+    >
+      {children}
+    </button>
   );
 }

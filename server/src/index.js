@@ -5,6 +5,7 @@ import cors from 'cors';
 import { ensureSchema } from './db/ensureSchema.js';
 import explorationsRouter from './routes/explorations.js';
 import draftsRouter from './routes/drafts.js';
+import validationRouter from './routes/validation.js';
 
 // Ensure schema (and any later-added columns) exist on startup. Idempotent.
 ensureSchema();
@@ -19,6 +20,7 @@ app.get('/api/health', (_req, res) => {
 
 app.use('/api/explorations', explorationsRouter);
 app.use('/api/drafts', draftsRouter);
+app.use('/api/validation', validationRouter);
 
 // 404 for unknown API routes
 app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }));
