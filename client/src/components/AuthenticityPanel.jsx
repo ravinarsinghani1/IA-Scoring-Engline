@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api.js';
+import ScoreFeedback from './ScoreFeedback.jsx';
 
 // The authenticity gate for a single draft. Records the similarity + AI-content
 // scores, shows pass/blocked/not-checked status, and gates the (placeholder)
@@ -125,14 +126,6 @@ export default function AuthenticityPanel({ draft, onChanged, onError }) {
   );
 }
 
-const CRITERION_NAMES = {
-  A: 'Presentation',
-  B: 'Mathematical communication',
-  C: 'Personal engagement',
-  D: 'Reflection',
-  E: 'Use of mathematics',
-};
-
 function StatusBadge({ checked, passed, draft }) {
   if (!checked) {
     return (
@@ -199,7 +192,7 @@ function ScoringGate({ passed, scoring, scoreError, scores, onScore }) {
             </p>
           )}
           {scoreError && <p className="mt-2 text-xs text-red-600">{scoreError}</p>}
-          {scores && <ScoreList scores={scores} />}
+          {scores && scores.length > 0 && <ScoreFeedback scores={scores} />}
         </div>
       ) : (
         <div className="flex items-center gap-2 text-xs text-slate-500">
@@ -212,63 +205,5 @@ function ScoringGate({ passed, scoring, scoreError, scores, onScore }) {
         </div>
       )}
     </div>
-  );
-}
-
-// Compact per-criterion score display. Full student / teacher views come in
-// later steps; this is enough to sanity-check the engine's output.
-function ScoreList({ scores }) {
-  return (
-    <ul className="mt-3 space-y-2">
-      {scores.map((s) => (
-        <li
-          key={s.criterion}
-          className="rounded-md border border-slate-200 bg-white p-2.5"
-        >
-          <div className="flex items-baseline justify-between">
-            <span className="text-xs font-semibold text-slate-800">
-              Criterion {s.criterion} · {CRITERION_NAMES[s.criterion] || ''}
-            </span>
-            <span className="text-xs font-semibold text-slate-900">
-              {s.confidence_tier === 'low' ? (
-                <>
-                  {s.range_low}–{s.range_high}/{s.max_mark}
-                  <span className="ml-1 font-normal text-slate-400">(suggested range)</span>
-                </>
-              ) : (
-                <>
-                  {s.engine_mark}/{s.max_mark}
-                  <span className="ml-1 font-normal text-slate-400">
-                    ({s.confidence_tier} confidence)
-                  </span>
-                </>
-              )}
-            </span>
-          </div>
-          {s.confidence_tier === 'low' ? (
-            <p className="mt-1 rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700">
-              Advisory only — personal engagement is holistic, so this is a suggested
-              range, not a mark. A teacher makes the final call.
-            </p>
-          ) : (
-            s.review_recommended && (
-              <p className="mt-1 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
-                ⚠ Review recommended{s.boundary_note ? ` — ${s.boundary_note}` : ' — this mark sits on a level boundary.'}
-              </p>
-            )
-          )}
-          <p className="mt-1 text-xs text-slate-600">
-            <span className="font-medium text-slate-500">Why: </span>
-            {s.reasoning_summary}
-          </p>
-          {(s.confidence_tier === 'low' || s.engine_mark < s.max_mark) && (
-            <p className="mt-1 text-xs text-slate-600">
-              <span className="font-medium text-slate-500">To improve: </span>
-              {s.improvement_suggestion}
-            </p>
-          )}
-        </li>
-      ))}
-    </ul>
   );
 }
