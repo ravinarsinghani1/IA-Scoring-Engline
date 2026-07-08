@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { api } from '../api.js';
 
 // The authenticity gate for a single draft. Records the similarity + AI-content
@@ -24,6 +24,21 @@ export default function AuthenticityPanel({ draft, onChanged, onError }) {
   const [scoring, setScoring] = useState(false);
   const [scoreError, setScoreError] = useState(null);
   const [scores, setScores] = useState(null);
+
+  // Show previously-computed scores on load, so viewing them doesn't require
+  // paying to re-run the model.
+  useEffect(() => {
+    let alive = true;
+    api
+      .getScores(draft.id)
+      .then((rows) => {
+        if (alive && rows.length) setScores(rows);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [draft.id]);
 
   const record = async (e) => {
     e.preventDefault();
@@ -221,6 +236,11 @@ function ScoreList({ scores }) {
               </span>
             </span>
           </div>
+          {s.review_recommended && (
+            <p className="mt-1 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
+              ⚠ Review recommended{s.boundary_note ? ` — ${s.boundary_note}` : ' — this mark sits on a level boundary.'}
+            </p>
+          )}
           <p className="mt-1 text-xs text-slate-600">
             <span className="font-medium text-slate-500">Why: </span>
             {s.reasoning_summary}

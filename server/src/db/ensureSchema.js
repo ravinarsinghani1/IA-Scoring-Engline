@@ -18,6 +18,10 @@ const ADDED_COLUMNS = {
     { name: 'source_file_name', ddl: 'source_file_name TEXT' },
     { name: 'source_file_path', ddl: 'source_file_path TEXT' },
   ],
+  criterion_score: [
+    { name: 'review_recommended', ddl: 'review_recommended INTEGER NOT NULL DEFAULT 0' },
+    { name: 'boundary_note', ddl: 'boundary_note TEXT' },
+  ],
 };
 
 export function ensureSchema() {

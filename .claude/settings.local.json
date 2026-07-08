@@ -13,7 +13,8 @@
       "Bash(python3 -)",
       "Bash(node -e \"console.log\\('version', require\\('pdf-parse/package.json'\\).version\\)\")",
       "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('pdf-parse/package.json'\\).exports, null, 2\\)\\)\")",
-      "Bash(node -e \"const p=require\\('pdf-parse/package.json'\\); console.log\\('main:',p.main,'type:',p.type,'module:',p.module\\)\")"
+      "Bash(node -e \"const p=require\\('pdf-parse/package.json'\\); console.log\\('main:',p.main,'type:',p.type,'module:',p.module\\)\")",
+      "Bash(lsof -ti tcp:4000)"
     ]
   }
 }

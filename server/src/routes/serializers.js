@@ -14,5 +14,6 @@ export function serializeScore(row) {
   return {
     ...row,
     changed_since_last_draft: Boolean(row.changed_since_last_draft),
+    review_recommended: Boolean(row.review_recommended),
   };
 }

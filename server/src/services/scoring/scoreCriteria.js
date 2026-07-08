@@ -36,17 +36,28 @@ function buildSchema(keys) {
   const properties = {};
   for (const key of keys) {
     const c = CRITERIA[key];
+    const props = {
+      // enum constrains the mark to the valid whole-number range (structured
+      // outputs don't support numeric min/max, but enum is supported).
+      mark: { type: 'integer', enum: c.bands.map((b) => b.mark) },
+      reasoning: { type: 'string' },
+      improvement: { type: 'string' },
+    };
+    const required = ['mark', 'reasoning', 'improvement'];
+
+    // Medium-confidence criteria (D, E) carry a visible boundary flag so the
+    // teacher knows when the mark sits right on a markband boundary.
+    if (c.confidenceTier === 'medium') {
+      props.review_recommended = { type: 'boolean' };
+      props.boundary_note = { type: 'string' };
+      required.push('review_recommended', 'boundary_note');
+    }
+
     properties[key] = {
       type: 'object',
       additionalProperties: false,
-      properties: {
-        // enum constrains the mark to the valid whole-number range (structured
-        // outputs don't support numeric min/max, but enum is supported).
-        mark: { type: 'integer', enum: c.bands.map((b) => b.mark) },
-        reasoning: { type: 'string' },
-        improvement: { type: 'string' },
-      },
-      required: ['mark', 'reasoning', 'improvement'],
+      properties: props,
+      required,
     };
   }
   return {
@@ -72,13 +83,19 @@ export async function scoreCriteria(keys, { rawText, level, pdfPath = null }) {
   const client = getAnthropicClient();
   const schema = buildSchema(keys);
 
+  const hasMedium = keys.some((k) => CRITERIA[k].confidenceTier === 'medium');
+
   const instructions = `This is a Mathematics AI ${level} exploration.
 
 Assess the following criteria using best-fit. ${
     keys.length > 1 ? 'Score each independently.' : ''
   }
 
-${keys.map(criterionBlock).join('\n\n')}`;
+${keys.map(criterionBlock).join('\n\n')}${
+    hasMedium
+      ? `\n\nFor any criterion whose output includes "review_recommended": set it to true ONLY when the exploration sits genuinely on the boundary between two markbands for that criterion (a defensible case could be made for either level); otherwise false. When true, use "boundary_note" to name the two levels and briefly say why it is borderline; when false, set "boundary_note" to an empty string.`
+      : ''
+  }`;
 
   const userContent = buildExplorationContent({
     pdfPath,
@@ -121,6 +138,8 @@ ${keys.map(criterionBlock).join('\n\n')}`;
       confidence_tier: c.confidenceTier,
       reasoning_summary: r.reasoning,
       improvement_suggestion: r.improvement,
+      review_recommended: r.review_recommended ?? false,
+      boundary_note: r.boundary_note || null,
     };
   });
 }

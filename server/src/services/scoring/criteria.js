@@ -46,7 +46,23 @@ export const CRITERIA = {
     guidance:
       'Appropriate communication means: using proper mathematical notation rather than calculator syntax (e.g. write x^2 or superscript, not "x^2" as typed into a calculator; use correct symbols for ≤, ∑, etc.); defining key terms and variables the first time they are used; choosing suitable forms of representation (a graph where a graph clarifies, a table where a table clarifies); and setting out reasoning deductively where appropriate. "Consistent throughout" (level 4) means the appropriate communication is sustained across the whole exploration, not just in places.',
   },
+
+  D: {
+    name: 'Reflection',
+    maxMark: 3,
+    confidenceTier: 'medium',
+    focus:
+      'How the student reviews and evaluates their own work. Reflection can appear ANYWHERE — not just the conclusion. Limited = merely describing results. Meaningful = linking back to the aim and discussing limitations. Critical = discussing implications, considering strengths/weaknesses, comparing different mathematical approaches, and considering alternatives or next steps.',
+    bands: [
+      { mark: 0, descriptor: 'The exploration does not reach the standard described by the descriptors below.' },
+      { mark: 1, descriptor: 'There is evidence of limited reflection.' },
+      { mark: 2, descriptor: 'There is evidence of meaningful reflection.' },
+      { mark: 3, descriptor: 'There is substantial evidence of critical reflection.' },
+    ],
+    guidance:
+      'Look for reflection throughout the whole exploration, not only at the end. Limited (1) = the student mainly describes what they did or what the results were. Meaningful (2) = the student links results back to the stated aim and discusses limitations or whether results are reasonable. Critical (3) = the student discusses implications, weighs strengths and weaknesses of their method, compares alternative approaches, and/or considers what they would do differently — AND this critical reflection is substantial and sustained across the exploration, not a single strong closing paragraph. A powerful final paragraph alone is meaningful (2), not critical (3).',
+  },
 };
 
 // The subset of criteria implemented at each build step. Extend as we go.
-export const IMPLEMENTED_CRITERIA = ['A', 'B'];
+export const IMPLEMENTED_CRITERIA = ['A', 'B', 'D'];

@@ -56,6 +56,11 @@ CREATE TABLE IF NOT EXISTS criterion_score (
   teacher_override_mark  INTEGER,                     -- nullable
   changed_since_last_draft INTEGER NOT NULL DEFAULT 0, -- boolean 0/1
 
+  -- Medium-confidence criteria (D, E): flag + note when the mark sits on a
+  -- markband boundary and the teacher should take a closer look.
+  review_recommended     INTEGER NOT NULL DEFAULT 0,  -- boolean 0/1
+  boundary_note          TEXT,
+
   FOREIGN KEY (draft_id) REFERENCES draft(id) ON DELETE CASCADE,
   UNIQUE (draft_id, criterion),
   CHECK (criterion IN ('A', 'B', 'C', 'D', 'E')),
