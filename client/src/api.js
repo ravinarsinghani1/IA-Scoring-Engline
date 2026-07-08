@@ -47,6 +47,8 @@ export const api = {
   getScores: (draftId) => request(`/drafts/${draftId}/scores`),
   // Originality coach — integrity coaching beyond Turnitin. Needs an API key.
   runOriginality: (draftId) => request(`/drafts/${draftId}/originality`, { method: 'POST' }),
+  // Web-source similarity check (public web; complements Turnitin). Needs a key.
+  runSimilarity: (draftId) => request(`/drafts/${draftId}/similarity`, { method: 'POST' }),
 
   // Validation harness
   runValidation: (explorationId, teacherMarks, ibMarks, draftId) =>
