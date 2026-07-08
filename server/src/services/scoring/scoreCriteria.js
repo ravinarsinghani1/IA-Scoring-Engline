@@ -22,24 +22,33 @@ For each criterion return:
 - "reasoning": 1–3 sentences, specific to this student's work, explaining what the exploration did that justifies this mark (what was done well at this level).
 - "improvement": if the mark is below the maximum, ONE concrete, actionable change tied to what is missing for the NEXT markband up, referencing the student's actual content. If the mark is already the maximum, briefly note what sustains it.`;
 
-function criterionBlock(key) {
+// Criterion E's descriptors differ by level; everything else is level-agnostic.
+function bandsFor(c, level) {
+  return c.bandsByLevel ? c.bandsByLevel[level] || c.bandsByLevel.SL : c.bands;
+}
+
+function criterionBlock(key, level) {
   const c = CRITERIA[key];
-  const bands = c.bands.map((b) => `  ${b.mark}: ${b.descriptor}`).join('\n');
-  return `Criterion ${key} — ${c.name} (0–${c.maxMark})
+  const bands = bandsFor(c, level)
+    .map((b) => `  ${b.mark}: ${b.descriptor}`)
+    .join('\n');
+  return `Criterion ${key} — ${c.name} (0–${c.maxMark})${
+    c.levelDependent ? ` [descriptors specific to ${level}]` : ''
+  }
 Focus: ${c.focus}
 Markbands:
 ${bands}
 Guidance: ${c.guidance}`;
 }
 
-function buildSchema(keys) {
+function buildSchema(keys, level) {
   const properties = {};
   for (const key of keys) {
     const c = CRITERIA[key];
     const props = {
       // enum constrains the mark to the valid whole-number range (structured
       // outputs don't support numeric min/max, but enum is supported).
-      mark: { type: 'integer', enum: c.bands.map((b) => b.mark) },
+      mark: { type: 'integer', enum: bandsFor(c, level).map((b) => b.mark) },
       reasoning: { type: 'string' },
       improvement: { type: 'string' },
     };
@@ -81,9 +90,10 @@ function buildSchema(keys) {
  */
 export async function scoreCriteria(keys, { rawText, level, pdfPath = null }) {
   const client = getAnthropicClient();
-  const schema = buildSchema(keys);
+  const schema = buildSchema(keys, level);
 
   const hasMedium = keys.some((k) => CRITERIA[k].confidenceTier === 'medium');
+  const hasE = keys.includes('E');
 
   const instructions = `This is a Mathematics AI ${level} exploration.
 
@@ -91,7 +101,11 @@ Assess the following criteria using best-fit. ${
     keys.length > 1 ? 'Score each independently.' : ''
   }
 
-${keys.map(criterionBlock).join('\n\n')}${
+${keys.map((k) => criterionBlock(k, level)).join('\n\n')}${
+    hasE
+      ? `\n\nFor Criterion E specifically, actively VERIFY the mathematics — do not judge it by appearance. Work through the derivations and calculations, confirm that stated numerical and statistical results (e.g. regression coefficients, R², solved values) genuinely follow from the data and methods shown, and identify any errors or steps that do not follow. The correctness of the mathematics is decisive for the E mark.`
+      : ''
+  }${
     hasMedium
       ? `\n\nFor any criterion whose output includes "review_recommended": set it to true ONLY when the exploration sits genuinely on the boundary between two markbands for that criterion (a defensible case could be made for either level); otherwise false. When true, use "boundary_note" to name the two levels and briefly say why it is borderline; when false, set "boundary_note" to an empty string.`
       : ''

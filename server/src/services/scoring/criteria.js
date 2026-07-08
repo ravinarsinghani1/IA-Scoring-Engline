@@ -62,7 +62,40 @@ export const CRITERIA = {
     guidance:
       'Look for reflection throughout the whole exploration, not only at the end. Limited (1) = the student mainly describes what they did or what the results were. Meaningful (2) = the student links results back to the stated aim and discusses limitations or whether results are reasonable. Critical (3) = the student discusses implications, weighs strengths and weaknesses of their method, compares alternative approaches, and/or considers what they would do differently — AND this critical reflection is substantial and sustained across the exploration, not a single strong closing paragraph. A powerful final paragraph alone is meaningful (2), not critical (3).',
   },
+
+  E: {
+    name: 'Use of mathematics',
+    maxMark: 6,
+    confidenceTier: 'medium',
+    // Criterion E is the only criterion whose descriptors differ by level: HL
+    // requires "sophistication and rigour" at the top bands, SL does not.
+    levelDependent: true,
+    focus:
+      'The mathematics itself: is it relevant to the aim, correct, commensurate with the course level, and does it demonstrate genuine understanding (not just a correct final answer)? Correctness must be actively verified where feasible, not assumed from how mathematical the work looks.',
+    bandsByLevel: {
+      SL: [
+        { mark: 0, descriptor: 'The exploration does not reach the standard described by the descriptors below.' },
+        { mark: 1, descriptor: 'Some relevant mathematics is used.' },
+        { mark: 2, descriptor: 'Some relevant mathematics is used. Limited understanding is demonstrated.' },
+        { mark: 3, descriptor: 'Relevant mathematics commensurate with the level of the course is used. Limited understanding is demonstrated.' },
+        { mark: 4, descriptor: 'Relevant mathematics commensurate with the level of the course is used. The mathematics explored is partially correct. Some knowledge and understanding are demonstrated.' },
+        { mark: 5, descriptor: 'Relevant mathematics commensurate with the level of the course is used. The mathematics explored is mostly correct. Good knowledge and understanding are demonstrated.' },
+        { mark: 6, descriptor: 'Relevant mathematics commensurate with the level of the course is used. The mathematics explored is correct. Thorough knowledge and understanding are demonstrated.' },
+      ],
+      HL: [
+        { mark: 0, descriptor: 'The exploration does not reach the standard described by the descriptors below.' },
+        { mark: 1, descriptor: 'Some relevant mathematics is used.' },
+        { mark: 2, descriptor: 'Some relevant mathematics is used. Limited understanding is demonstrated.' },
+        { mark: 3, descriptor: 'Relevant mathematics commensurate with the level of the course is used. Limited understanding is demonstrated.' },
+        { mark: 4, descriptor: 'Relevant mathematics commensurate with the level of the course is used. The mathematics explored is partially correct. Some knowledge and understanding are demonstrated.' },
+        { mark: 5, descriptor: 'Relevant mathematics commensurate with the level of the course is used. The mathematics explored is mostly correct. Good knowledge and understanding are demonstrated. It demonstrates some sophistication or rigour.' },
+        { mark: 6, descriptor: 'Relevant mathematics commensurate with the level of the course is used. The mathematics explored is correct and demonstrates sophistication and rigour. Thorough knowledge and understanding are demonstrated.' },
+      ],
+    },
+    guidance:
+      'Assess the actual mathematics, not its surface appearance. Verify correctness where feasible: follow the derivations, check that stated results (regression coefficients, R², test statistics, solved values, etc.) genuinely follow from the data and methods shown, and flag any computational or logical errors — correctness is decisive (4 = partially correct, 5 = mostly correct, 6 = correct). "Commensurate with the level of the course" means the mathematics is at the level expected for Mathematics AI at this level; trivial or off-syllabus mathematics limits the mark. "Understanding" means the student shows they grasp what they are doing, not merely that a final answer is right. LEVEL DIFFERENCE: at SL, sophistication and rigour are NOT required for full marks; at HL, level 5 requires some sophistication or rigour and level 6 requires both.',
+  },
 };
 
 // The subset of criteria implemented at each build step. Extend as we go.
-export const IMPLEMENTED_CRITERIA = ['A', 'B', 'D'];
+export const IMPLEMENTED_CRITERIA = ['A', 'B', 'D', 'E'];
