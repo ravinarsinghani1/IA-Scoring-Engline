@@ -89,9 +89,9 @@ export default function AuthenticityPanel({ draft, onChanged, onError }) {
       {open && (
         <form onSubmit={record} className="mt-3 space-y-3">
           <p className="text-xs text-slate-500">
-            Enter the authenticity results. The gate passes only when{' '}
-            <strong>both scores are 0</strong>. (Manual entry for now — a live
-            similarity / AI-detector check can be wired in later.)
+            Record your Turnitin similarity and AI-content numbers for the file.
+            These are <strong>for your reference — the gate passes with any
+            percentage</strong>; you decide what to do about the numbers.
           </p>
           <div className="flex gap-3">
             <ScoreInput
@@ -198,9 +198,8 @@ function ScoringGate({ passed, scoring, scoreError, scores, onScore }) {
         <div className="flex items-center gap-2 text-xs text-slate-500">
           <span aria-hidden>🔒</span>
           <span>
-            <strong className="text-slate-600">Scoring locked.</strong> The
-            authenticity gate must pass (both scores at 0) before this draft can
-            be scored.
+            <strong className="text-slate-600">Scoring locked.</strong> Record
+            the authenticity numbers (any percentage) to unlock scoring.
           </span>
         </div>
       )}

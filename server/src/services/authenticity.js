@@ -1,20 +1,11 @@
 // Authenticity gate.
 //
-// In the real IA workflow the final version must pass an authenticity check
-// before it can be scored or uploaded to IBIS: the similarity score and the
-// AI-content label must BOTH be zero. This is a hard gate, not optional.
-//
-// For the MVP there is no live Turnitin / AI-detector integration, so the two
-// scores are entered manually. The pass/fail rule, however, is enforced for
-// real: scoring endpoints call `gateBlockReason()` and refuse to run until the
-// gate passes. When a real detector is wired in later, only the INPUT changes —
-// this rule and every caller stay the same.
-
-// Maximum allowed values for the gate to pass. Kept as named constants so the
-// policy is easy to find and adjust in one place (e.g. if a school later
-// decides to allow a small non-zero similarity threshold).
-export const SIMILARITY_MAX = 0; // percent
-export const AI_LABEL_MAX = 0; // percent
+// The teacher records the authenticity numbers (from Turnitin: similarity % and
+// AI-content %) for their reference. Per the current policy the gate is NOT a
+// hard block on the values — it passes with ANY percentage once a check has been
+// recorded. The numbers are informational; the teacher decides what to do about
+// them. Scoring is still gated on a check having been RECORDED, so nothing is
+// scored on a draft whose authenticity hasn't been logged at all.
 
 /** Validate a raw score input. Returns a number in [0,100] or throws. */
 export function parseScore(value, label) {
@@ -28,26 +19,17 @@ export function parseScore(value, label) {
 }
 
 /**
- * Decide whether the gate passes for a given pair of scores.
+ * The gate passes with any recorded percentage (policy: record, don't block).
  * @returns {{ passed: boolean, reason: string|null }}
  */
-export function evaluateGate({ similarityScore, aiLabelScore }) {
-  const failures = [];
-  if (similarityScore > SIMILARITY_MAX) {
-    failures.push(`similarity score is ${similarityScore}% (must be ${SIMILARITY_MAX}%)`);
-  }
-  if (aiLabelScore > AI_LABEL_MAX) {
-    failures.push(`AI-content label is ${aiLabelScore}% (must be ${AI_LABEL_MAX}%)`);
-  }
-  if (failures.length > 0) {
-    return { passed: false, reason: `Authenticity gate blocked: ${failures.join('; ')}.` };
-  }
+export function evaluateGate() {
   return { passed: true, reason: null };
 }
 
 /**
  * Guard used by scoring endpoints. Returns null when scoring is allowed, or a
- * human-readable reason string when it must be blocked (HTTP 409).
+ * human-readable reason string when it must be blocked (HTTP 409). Scoring is
+ * allowed once an authenticity check has been recorded (any values).
  */
 export function gateBlockReason(draft) {
   if (!draft) return 'Draft not found.';
@@ -57,13 +39,7 @@ export function gateBlockReason(draft) {
     draft.authenticity_ai_label_score !== null &&
     draft.authenticity_ai_label_score !== undefined;
   if (!checked) {
-    return 'Authenticity gate has not been checked yet. Record the authenticity check before scoring.';
-  }
-  if (!draft.authenticity_gate_passed) {
-    return evaluateGate({
-      similarityScore: draft.authenticity_similarity_score,
-      aiLabelScore: draft.authenticity_ai_label_score,
-    }).reason;
+    return 'Record the authenticity numbers first (any percentage) to unlock scoring.';
   }
   return null;
 }
