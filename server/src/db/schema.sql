@@ -61,6 +61,11 @@ CREATE TABLE IF NOT EXISTS criterion_score (
   review_recommended     INTEGER NOT NULL DEFAULT 0,  -- boolean 0/1
   boundary_note          TEXT,
 
+  -- Low-confidence criterion (C, Personal engagement): a suggested range instead
+  -- of a definitive mark. engine_mark is NULL for these; range_low/high are set.
+  range_low              INTEGER,
+  range_high             INTEGER,
+
   FOREIGN KEY (draft_id) REFERENCES draft(id) ON DELETE CASCADE,
   UNIQUE (draft_id, criterion),
   CHECK (criterion IN ('A', 'B', 'C', 'D', 'E')),

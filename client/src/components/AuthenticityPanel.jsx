@@ -230,22 +230,38 @@ function ScoreList({ scores }) {
               Criterion {s.criterion} · {CRITERION_NAMES[s.criterion] || ''}
             </span>
             <span className="text-xs font-semibold text-slate-900">
-              {s.engine_mark}/{s.max_mark}
-              <span className="ml-1 font-normal text-slate-400">
-                ({s.confidence_tier} confidence)
-              </span>
+              {s.confidence_tier === 'low' ? (
+                <>
+                  {s.range_low}–{s.range_high}/{s.max_mark}
+                  <span className="ml-1 font-normal text-slate-400">(suggested range)</span>
+                </>
+              ) : (
+                <>
+                  {s.engine_mark}/{s.max_mark}
+                  <span className="ml-1 font-normal text-slate-400">
+                    ({s.confidence_tier} confidence)
+                  </span>
+                </>
+              )}
             </span>
           </div>
-          {s.review_recommended && (
-            <p className="mt-1 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
-              ⚠ Review recommended{s.boundary_note ? ` — ${s.boundary_note}` : ' — this mark sits on a level boundary.'}
+          {s.confidence_tier === 'low' ? (
+            <p className="mt-1 rounded bg-indigo-50 px-1.5 py-0.5 text-xs text-indigo-700">
+              Advisory only — personal engagement is holistic, so this is a suggested
+              range, not a mark. A teacher makes the final call.
             </p>
+          ) : (
+            s.review_recommended && (
+              <p className="mt-1 rounded bg-amber-50 px-1.5 py-0.5 text-xs text-amber-700">
+                ⚠ Review recommended{s.boundary_note ? ` — ${s.boundary_note}` : ' — this mark sits on a level boundary.'}
+              </p>
+            )
           )}
           <p className="mt-1 text-xs text-slate-600">
             <span className="font-medium text-slate-500">Why: </span>
             {s.reasoning_summary}
           </p>
-          {s.engine_mark < s.max_mark && (
+          {(s.confidence_tier === 'low' || s.engine_mark < s.max_mark) && (
             <p className="mt-1 text-xs text-slate-600">
               <span className="font-medium text-slate-500">To improve: </span>
               {s.improvement_suggestion}

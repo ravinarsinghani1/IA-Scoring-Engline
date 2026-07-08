@@ -27,8 +27,8 @@ export async function saveScores(draftId, results, previousScores = []) {
       `INSERT INTO criterion_score
          (draft_id, criterion, engine_mark, max_mark, confidence_tier,
           reasoning_summary, improvement_suggestion, changed_since_last_draft,
-          review_recommended, boundary_note)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          review_recommended, boundary_note, range_low, range_high)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON CONFLICT(draft_id, criterion) DO UPDATE SET
          engine_mark = excluded.engine_mark,
          max_mark = excluded.max_mark,
@@ -37,11 +37,13 @@ export async function saveScores(draftId, results, previousScores = []) {
          improvement_suggestion = excluded.improvement_suggestion,
          changed_since_last_draft = excluded.changed_since_last_draft,
          review_recommended = excluded.review_recommended,
-         boundary_note = excluded.boundary_note`,
+         boundary_note = excluded.boundary_note,
+         range_low = excluded.range_low,
+         range_high = excluded.range_high`,
       [
         draftId,
         r.criterion,
-        r.engine_mark,
+        r.engine_mark ?? null,
         r.max_mark,
         r.confidence_tier,
         r.reasoning_summary,
@@ -49,6 +51,8 @@ export async function saveScores(draftId, results, previousScores = []) {
         changed ? 1 : 0,
         r.review_recommended ? 1 : 0,
         r.boundary_note ?? null,
+        r.range_low ?? null,
+        r.range_high ?? null,
       ]
     );
   }

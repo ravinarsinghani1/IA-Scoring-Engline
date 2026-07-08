@@ -95,7 +95,26 @@ export const CRITERIA = {
     guidance:
       'Assess the actual mathematics, not its surface appearance. Verify correctness where feasible: follow the derivations, check that stated results (regression coefficients, R², test statistics, solved values, etc.) genuinely follow from the data and methods shown, and flag any computational or logical errors — correctness is decisive (4 = partially correct, 5 = mostly correct, 6 = correct). "Commensurate with the level of the course" means the mathematics is at the level expected for Mathematics AI at this level; trivial or off-syllabus mathematics limits the mark. "Understanding" means the student shows they grasp what they are doing, not merely that a final answer is right. LEVEL DIFFERENCE: at SL, sophistication and rigour are NOT required for full marks; at HL, level 5 requires some sophistication or rigour and level 6 requires both.',
   },
+
+  C: {
+    name: 'Personal engagement',
+    maxMark: 3,
+    // Inherently holistic and subjective: ALWAYS low-confidence, presented as a
+    // suggested range (never a definitive number), and routed to mandatory
+    // teacher review regardless of how confident the analysis feels.
+    confidenceTier: 'low',
+    focus:
+      'The extent of GENUINE personal engagement with the topic — NOT a measure of effort or time spent. Look for independent and creative thinking, the student\'s own perspective rather than textbook reproduction, asking their own questions, making and testing predictions, and exploring the topic from different angles.',
+    bands: [
+      { mark: 0, descriptor: 'The exploration does not reach the standard described by the descriptors below.' },
+      { mark: 1, descriptor: 'There is evidence of some personal engagement.' },
+      { mark: 2, descriptor: 'There is evidence of significant personal engagement.' },
+      { mark: 3, descriptor: 'There is evidence of outstanding personal engagement.' },
+    ],
+    guidance:
+      'Personal engagement is about authentic ownership of the exploration, not diligence. Evidence includes: framing the problem in the student\'s own way, creative or independent approaches, testing their own conjectures, bringing a personal perspective or context, and genuine curiosity — as opposed to reproducing standard textbook material. It is NOT measured by length, neatness, or amount of work. Because this judgement is holistic and hard to evidence from text alone, give a SUGGESTED RANGE rather than a single mark, and the teacher always makes the final decision.',
+  },
 };
 
 // The subset of criteria implemented at each build step. Extend as we go.
-export const IMPLEMENTED_CRITERIA = ['A', 'B', 'D', 'E'];
+export const IMPLEMENTED_CRITERIA = ['A', 'B', 'D', 'E', 'C'];

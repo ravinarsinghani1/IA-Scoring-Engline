@@ -21,6 +21,8 @@ const ADDED_COLUMNS = {
   criterion_score: [
     { name: 'review_recommended', ddl: 'review_recommended INTEGER NOT NULL DEFAULT 0' },
     { name: 'boundary_note', ddl: 'boundary_note TEXT' },
+    { name: 'range_low', ddl: 'range_low INTEGER' },
+    { name: 'range_high', ddl: 'range_high INTEGER' },
   ],
 };
 

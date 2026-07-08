@@ -45,21 +45,37 @@ function buildSchema(keys, level) {
   const properties = {};
   for (const key of keys) {
     const c = CRITERIA[key];
-    const props = {
-      // enum constrains the mark to the valid whole-number range (structured
-      // outputs don't support numeric min/max, but enum is supported).
-      mark: { type: 'integer', enum: bandsFor(c, level).map((b) => b.mark) },
-      reasoning: { type: 'string' },
-      improvement: { type: 'string' },
-    };
-    const required = ['mark', 'reasoning', 'improvement'];
+    const marks = bandsFor(c, level).map((b) => b.mark);
+    let props;
+    let required;
 
-    // Medium-confidence criteria (D, E) carry a visible boundary flag so the
-    // teacher knows when the mark sits right on a markband boundary.
-    if (c.confidenceTier === 'medium') {
-      props.review_recommended = { type: 'boolean' };
-      props.boundary_note = { type: 'string' };
-      required.push('review_recommended', 'boundary_note');
+    if (c.confidenceTier === 'low') {
+      // Low-confidence criteria (C) are presented as a suggested RANGE, never a
+      // single definitive mark. enum keeps both ends within the valid range.
+      props = {
+        range_low: { type: 'integer', enum: marks },
+        range_high: { type: 'integer', enum: marks },
+        reasoning: { type: 'string' },
+        improvement: { type: 'string' },
+      };
+      required = ['range_low', 'range_high', 'reasoning', 'improvement'];
+    } else {
+      props = {
+        // enum constrains the mark to the valid whole-number range (structured
+        // outputs don't support numeric min/max, but enum is supported).
+        mark: { type: 'integer', enum: marks },
+        reasoning: { type: 'string' },
+        improvement: { type: 'string' },
+      };
+      required = ['mark', 'reasoning', 'improvement'];
+
+      // Medium-confidence criteria (D, E) carry a visible boundary flag so the
+      // teacher knows when the mark sits right on a markband boundary.
+      if (c.confidenceTier === 'medium') {
+        props.review_recommended = { type: 'boolean' };
+        props.boundary_note = { type: 'string' };
+        required.push('review_recommended', 'boundary_note');
+      }
     }
 
     properties[key] = {
@@ -93,6 +109,7 @@ export async function scoreCriteria(keys, { rawText, level, pdfPath = null }) {
   const schema = buildSchema(keys, level);
 
   const hasMedium = keys.some((k) => CRITERIA[k].confidenceTier === 'medium');
+  const hasLow = keys.some((k) => CRITERIA[k].confidenceTier === 'low');
   const hasE = keys.includes('E');
 
   const instructions = `This is a Mathematics AI ${level} exploration.
@@ -108,6 +125,10 @@ ${keys.map((k) => criterionBlock(k, level)).join('\n\n')}${
   }${
     hasMedium
       ? `\n\nFor any criterion whose output includes "review_recommended": set it to true ONLY when the exploration sits genuinely on the boundary between two markbands for that criterion (a defensible case could be made for either level); otherwise false. When true, use "boundary_note" to name the two levels and briefly say why it is borderline; when false, set "boundary_note" to an empty string.`
+      : ''
+  }${
+    hasLow
+      ? `\n\nFor any criterion whose output asks for "range_low" and "range_high": this judgement (personal engagement) is holistic and hard to evidence from text alone, so give a SUGGESTED RANGE of plausible marks rather than a single definitive one (range_low ≤ range_high, both within the criterion's range). Base it on GENUINE engagement — independent/creative thinking, the student's own perspective and questions, testing ideas, exploring from different angles — NOT on effort, length or neatness. The teacher makes the final decision.`
       : ''
   }`;
 
@@ -143,11 +164,32 @@ ${keys.map((k) => criterionBlock(k, level)).join('\n\n')}${
   return keys.map((key) => {
     const c = CRITERIA[key];
     const r = parsed.criteria[key];
-    // Clamp defensively even though enum should already bound the mark.
-    const mark = Math.max(0, Math.min(c.maxMark, Math.round(r.mark)));
+    const cap = (n) => Math.max(0, Math.min(c.maxMark, Math.round(n)));
+
+    if (c.confidenceTier === 'low') {
+      // Presented as a range; no single definitive mark. Always mandatory review.
+      let lo = cap(r.range_low);
+      let hi = cap(r.range_high);
+      if (lo > hi) [lo, hi] = [hi, lo];
+      return {
+        criterion: key,
+        engine_mark: null,
+        range_low: lo,
+        range_high: hi,
+        max_mark: c.maxMark,
+        confidence_tier: 'low',
+        reasoning_summary: r.reasoning,
+        improvement_suggestion: r.improvement,
+        review_recommended: true, // mandatory teacher review, always
+        boundary_note: null,
+      };
+    }
+
     return {
       criterion: key,
-      engine_mark: mark,
+      engine_mark: cap(r.mark),
+      range_low: null,
+      range_high: null,
       max_mark: c.maxMark,
       confidence_tier: c.confidenceTier,
       reasoning_summary: r.reasoning,
