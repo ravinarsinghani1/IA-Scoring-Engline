@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import AuthenticityPanel from './AuthenticityPanel.jsx';
 import OriginalityCoach from './OriginalityCoach.jsx';
 import SimilarityCheck from './SimilarityCheck.jsx';
+import AiAuthorshipAdvisory from './AiAuthorshipAdvisory.jsx';
 
 export default function ExplorationDetail({ explorationId, onDraftSubmitted, onError }) {
   const [exploration, setExploration] = useState(null);
@@ -164,6 +165,7 @@ function DraftCard({ draft, onChanged, onError }) {
 
       <OriginalityCoach draft={draft} onError={onError} />
       <SimilarityCheck draft={draft} onError={onError} />
+      <AiAuthorshipAdvisory draft={draft} onError={onError} />
       <AuthenticityPanel draft={draft} onChanged={onChanged} onError={onError} />
     </li>
   );

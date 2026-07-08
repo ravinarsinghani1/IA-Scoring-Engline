@@ -15,6 +15,7 @@ import { scoreCriteria } from '../services/scoring/scoreCriteria.js';
 import { IMPLEMENTED_CRITERIA } from '../services/scoring/criteria.js';
 import { runOriginalityCoach } from '../services/originality/coach.js';
 import { runWebSourceCheck } from '../services/similarity/webSourceCheck.js';
+import { runAuthorshipAdvisory } from '../services/authorship/aiAuthorshipAdvisory.js';
 
 const router = Router();
 
@@ -117,6 +118,24 @@ router.post('/:id/similarity', async (req, res, next) => {
     if (!draft) return res.status(404).json({ error: 'draft not found' });
     const exploration = await getExplorationById(draft.exploration_id);
     const report = await runWebSourceCheck({
+      rawText: draft.raw_text,
+      level: exploration.level,
+      pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,
+    });
+    res.json(report);
+  } catch (err) {
+    next(err);
+  }
+});
+
+// AI-authorship advisory — passage-level, teacher-facing. NOT a detector: no
+// score/verdict. Ungated; needs an API key.
+router.post('/:id/authorship-advisory', async (req, res, next) => {
+  try {
+    const draft = await getDraftById(req.params.id);
+    if (!draft) return res.status(404).json({ error: 'draft not found' });
+    const exploration = await getExplorationById(draft.exploration_id);
+    const report = await runAuthorshipAdvisory({
       rawText: draft.raw_text,
       level: exploration.level,
       pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,

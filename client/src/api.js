@@ -49,6 +49,9 @@ export const api = {
   runOriginality: (draftId) => request(`/drafts/${draftId}/originality`, { method: 'POST' }),
   // Web-source similarity check (public web; complements Turnitin). Needs a key.
   runSimilarity: (draftId) => request(`/drafts/${draftId}/similarity`, { method: 'POST' }),
+  // AI-authorship advisory (teacher-facing, no verdict). Needs a key.
+  runAuthorshipAdvisory: (draftId) =>
+    request(`/drafts/${draftId}/authorship-advisory`, { method: 'POST' }),
 
   // Validation harness
   runValidation: (explorationId, teacherMarks, ibMarks, draftId) =>
