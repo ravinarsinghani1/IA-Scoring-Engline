@@ -14,7 +14,11 @@ async function request(path, options = {}) {
 }
 
 export const api = {
-  listExplorations: () => request('/explorations'),
+  listFolders: () => request('/folders'),
+  createFolder: (name) =>
+    request('/folders', { method: 'POST', body: JSON.stringify({ name }) }),
+  listExplorations: (folderId) =>
+    request(`/explorations${folderId ? `?folderId=${encodeURIComponent(folderId)}` : ''}`),
   getExploration: (id) => request(`/explorations/${id}`),
   createExploration: (body) =>
     request('/explorations', { method: 'POST', body: JSON.stringify(body) }),

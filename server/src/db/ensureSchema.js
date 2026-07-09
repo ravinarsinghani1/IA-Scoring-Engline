@@ -13,6 +13,11 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Columns added after the initial schema, per table. Extend this as the model
 // evolves; each entry is applied only if the column is missing.
 const ADDED_COLUMNS = {
+  exploration: [
+    // Grouping into folders (batch/year); NULL = ungrouped. Added without an
+    // inline FK on existing DBs (SQLite ALTER limitation) — enforced in app.
+    { name: 'folder_id', ddl: 'folder_id INTEGER' },
+  ],
   draft: [
     { name: 'source_kind', ddl: "source_kind TEXT NOT NULL DEFAULT 'text'" },
     { name: 'source_file_name', ddl: 'source_file_name TEXT' },

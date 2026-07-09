@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api.js';
 
-export default function NewExplorationForm({ onCreated, onError }) {
+export default function NewExplorationForm({ folderId = null, onCreated, onError }) {
   const [studentName, setStudentName] = useState('');
   const [studentId, setStudentId] = useState('');
   const [level, setLevel] = useState('SL');
@@ -18,6 +18,7 @@ export default function NewExplorationForm({ onCreated, onError }) {
         studentId: studentId.trim() || undefined,
         subject: 'AI',
         level,
+        folderId,
       });
       setStudentName('');
       setStudentId('');

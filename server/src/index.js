@@ -6,6 +6,7 @@ import { ensureSchema } from './db/ensureSchema.js';
 import explorationsRouter from './routes/explorations.js';
 import draftsRouter from './routes/drafts.js';
 import validationRouter from './routes/validation.js';
+import foldersRouter from './routes/folders.js';
 
 // Ensure schema (and any later-added columns) exist on startup. Idempotent.
 ensureSchema();
@@ -18,6 +19,7 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'ia-scoring-server' });
 });
 
+app.use('/api/folders', foldersRouter);
 app.use('/api/explorations', explorationsRouter);
 app.use('/api/drafts', draftsRouter);
 app.use('/api/validation', validationRouter);

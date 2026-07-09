@@ -5,8 +5,16 @@
 
 PRAGMA foreign_keys = ON;
 
+-- Folders group explorations by batch/year (e.g. "Math IA 2024-26").
+CREATE TABLE IF NOT EXISTS folder (
+  id          INTEGER PRIMARY KEY AUTOINCREMENT,
+  name        TEXT NOT NULL,
+  created_at  TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 CREATE TABLE IF NOT EXISTS exploration (
   id                    INTEGER PRIMARY KEY AUTOINCREMENT,
+  folder_id             INTEGER REFERENCES folder(id) ON DELETE SET NULL,  -- NULL = ungrouped
   student_id            TEXT,
   student_name          TEXT NOT NULL,
   subject               TEXT NOT NULL DEFAULT 'AI',   -- 'AI' (only supported subject in MVP)

@@ -35,7 +35,7 @@ const upload = multer({
 // Create an exploration
 router.post('/', async (req, res, next) => {
   try {
-    const { studentName, studentId, subject = 'AI', level = 'SL' } = req.body ?? {};
+    const { studentName, studentId, subject = 'AI', level = 'SL', folderId } = req.body ?? {};
     if (!studentName || !studentName.trim()) {
       return res.status(400).json({ error: 'studentName is required' });
     }
@@ -47,6 +47,7 @@ router.post('/', async (req, res, next) => {
       studentId: studentId?.trim() || null,
       subject,
       level,
+      folderId: folderId ?? null,
     });
     res.status(201).json(exploration);
   } catch (err) {
@@ -54,10 +55,10 @@ router.post('/', async (req, res, next) => {
   }
 });
 
-// List explorations
-router.get('/', async (_req, res, next) => {
+// List explorations, optionally filtered by folder (?folderId=N | none | all)
+router.get('/', async (req, res, next) => {
   try {
-    res.json(await listExplorations());
+    res.json(await listExplorations(req.query.folderId));
   } catch (err) {
     next(err);
   }

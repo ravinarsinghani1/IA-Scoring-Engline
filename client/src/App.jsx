@@ -4,16 +4,27 @@ import NewExplorationForm from './components/NewExplorationForm.jsx';
 import ExplorationList from './components/ExplorationList.jsx';
 import ExplorationDetail from './components/ExplorationDetail.jsx';
 import ValidationView from './components/ValidationView.jsx';
+import FolderBar from './components/FolderBar.jsx';
 
 export default function App() {
   const [view, setView] = useState('scoring'); // 'scoring' | 'validation'
+  const [folders, setFolders] = useState([]);
+  const [folder, setFolder] = useState('all'); // 'all' | folder id (string)
   const [explorations, setExplorations] = useState([]);
   const [selectedId, setSelectedId] = useState(null);
   const [error, setError] = useState(null);
 
   const refresh = useCallback(async () => {
     try {
-      setExplorations(await api.listExplorations());
+      setExplorations(await api.listExplorations(folder));
+    } catch (err) {
+      setError(err.message);
+    }
+  }, [folder]);
+
+  const loadFolders = useCallback(async () => {
+    try {
+      setFolders(await api.listFolders());
     } catch (err) {
       setError(err.message);
     }
@@ -23,10 +34,30 @@ export default function App() {
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    loadFolders();
+  }, [loadFolders]);
+
   const handleCreated = async (created) => {
     await refresh();
+    await loadFolders();
     setSelectedId(created.id);
   };
+
+  const handleCreateFolder = async (name) => {
+    const created = await api.createFolder(name);
+    await loadFolders();
+    setFolder(String(created.id));
+    setSelectedId(null);
+  };
+
+  const selectFolder = (value) => {
+    setFolder(value);
+    setSelectedId(null);
+  };
+
+  // Numeric folder id when a real folder is selected (else null = ungrouped).
+  const folderId = folder !== 'all' ? Number(folder) : null;
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
@@ -62,7 +93,17 @@ export default function App() {
         {view === 'scoring' ? (
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[340px_1fr]">
             <aside className="space-y-6">
-              <NewExplorationForm onCreated={handleCreated} onError={setError} />
+              <FolderBar
+                folders={folders}
+                selected={folder}
+                onSelect={selectFolder}
+                onCreate={handleCreateFolder}
+              />
+              <NewExplorationForm
+                folderId={folderId}
+                onCreated={handleCreated}
+                onError={setError}
+              />
               <ExplorationList
                 explorations={explorations}
                 selectedId={selectedId}
