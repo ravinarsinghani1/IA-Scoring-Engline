@@ -85,7 +85,11 @@ export default function App() {
             </section>
           </div>
         ) : (
-          <ValidationView explorations={explorations} onError={setError} />
+          <ValidationView
+            explorations={explorations}
+            onExplorationsChanged={refresh}
+            onError={setError}
+          />
         )}
       </main>
     </div>

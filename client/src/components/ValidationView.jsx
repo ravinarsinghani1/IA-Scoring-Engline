@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { api } from '../api.js';
+import BulkImport from './BulkImport.jsx';
 
 const CRITERIA_META = [
   { k: 'A', name: 'Presentation', max: 4 },
@@ -11,7 +12,7 @@ const CRITERIA_META = [
 
 const emptyMarks = () => ({ A: '', B: '', C: '', D: '', E: '' });
 
-export default function ValidationView({ explorations, onError }) {
+export default function ValidationView({ explorations, onExplorationsChanged, onError }) {
   const [explorationId, setExplorationId] = useState('');
   const [teacher, setTeacher] = useState(emptyMarks());
   const [ib, setIb] = useState(emptyMarks());
@@ -53,6 +54,14 @@ export default function ValidationView({ explorations, onError }) {
 
   return (
     <div className="space-y-8">
+      <BulkImport
+        onError={onError}
+        onDone={async () => {
+          await loadSummary();
+          await onExplorationsChanged?.();
+        }}
+      />
+
       <div className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
         <h2 className="text-base font-semibold text-slate-900">Validate against known marks</h2>
         <p className="mt-1 text-sm text-slate-500">
