@@ -7,8 +7,6 @@ import AiAuthorshipAdvisory from './AiAuthorshipAdvisory.jsx';
 
 export default function ExplorationDetail({ explorationId, onDraftSubmitted, onError }) {
   const [exploration, setExploration] = useState(null);
-  const [mode, setMode] = useState('pdf'); // 'pdf' (recommended) | 'text'
-  const [rawText, setRawText] = useState('');
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
 
@@ -21,23 +19,17 @@ export default function ExplorationDetail({ explorationId, onDraftSubmitted, onE
   }, [explorationId, onError]);
 
   useEffect(() => {
-    setRawText('');
     setFile(null);
     load();
   }, [explorationId, load]);
 
   const submit = async (e) => {
     e.preventDefault();
-    if (mode === 'pdf' ? !file : !rawText.trim()) return;
+    if (!file) return;
     setBusy(true);
     onError(null);
     try {
-      if (mode === 'pdf') {
-        await api.submitDraftFile(explorationId, file);
-      } else {
-        await api.submitDraft(explorationId, rawText);
-      }
-      setRawText('');
+      await api.submitDraftFile(explorationId, file);
       setFile(null);
       await load();
       onDraftSubmitted?.();
@@ -68,39 +60,12 @@ export default function ExplorationDetail({ explorationId, onDraftSubmitted, onE
           </span>
         </div>
 
-        <div className="mt-4 mb-3 flex gap-2">
-          <ModeTab active={mode === 'pdf'} onClick={() => setMode('pdf')}>
-            Upload PDF
-          </ModeTab>
-          <ModeTab active={mode === 'text'} onClick={() => setMode('text')}>
-            Paste text
-          </ModeTab>
-        </div>
-
-        <form onSubmit={submit}>
-          {mode === 'pdf' ? (
-            <>
-              <PdfDropZone file={file} onFile={setFile} onError={onError} />
-              <p className="mt-2 text-xs text-slate-400">
-                Recommended — the PDF is sent to the model as-is, so figures,
-                graphs and equations are included in the assessment.
-              </p>
-            </>
-          ) : (
-            <>
-              <textarea
-                value={rawText}
-                onChange={(e) => setRawText(e.target.value)}
-                rows={8}
-                placeholder="Paste the full text of the student's exploration here…"
-                className="w-full resize-y rounded-md border border-slate-300 px-3 py-2 font-mono text-sm leading-relaxed focus:border-slate-400 focus:outline-none"
-              />
-              <p className="mt-2 text-xs text-amber-600">
-                Note: pasted text loses figures, graphs and equations. Upload a
-                PDF for the most accurate scoring.
-              </p>
-            </>
-          )}
+        <form onSubmit={submit} className="mt-4">
+          <PdfDropZone file={file} onFile={setFile} onError={onError} />
+          <p className="mt-2 text-xs text-slate-400">
+            The PDF is sent to the model as-is, so figures, graphs and equations
+            are included in the assessment.
+          </p>
 
           <div className="mt-2 flex items-center justify-between">
             <span className="text-xs text-slate-400">
@@ -108,7 +73,7 @@ export default function ExplorationDetail({ explorationId, onDraftSubmitted, onE
             </span>
             <button
               type="submit"
-              disabled={busy || (mode === 'pdf' ? !file : !rawText.trim())}
+              disabled={busy || !file}
               className="rounded-md bg-slate-900 px-4 py-2 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-40"
             >
               {busy ? 'Submitting…' : 'Submit draft'}
@@ -171,21 +136,6 @@ function DraftCard({ draft, onChanged, onError }) {
   );
 }
 
-function ModeTab({ active, onClick, children }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`rounded-md border px-3 py-1.5 text-xs font-medium transition ${
-        active
-          ? 'border-slate-800 bg-slate-800 text-white'
-          : 'border-slate-300 bg-white text-slate-600 hover:border-slate-400'
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
 
 function PdfDropZone({ file, onFile, onError }) {
   const [dragOver, setDragOver] = useState(false);
