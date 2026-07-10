@@ -20,7 +20,9 @@
       "Bash(sqlite3 -header -column \"data/ia.db\" \"SELECT criterion, engine_mark, range_low, range_high, confidence_tier FROM criterion_score WHERE draft_id=7 ORDER BY criterion;\")",
       "Bash(sqlite3 \"data/ia.db\" \"DELETE FROM folder WHERE name='Batch 2025-27 UITEST';\")",
       "Bash(sqlite3 \"data/ia.db\" \"SELECT COUNT\\(*\\) FROM folder;\")",
-      "Bash(echo \"remaining folders: $\\(sqlite3 \"data/ia.db\" \"SELECT COUNT\\(*\\) FROM folder;\"\\)\")"
+      "Bash(echo \"remaining folders: $\\(sqlite3 \"data/ia.db\" \"SELECT COUNT\\(*\\) FROM folder;\"\\)\")",
+      "Bash(grep -n \"Applications and Interpretation\\\\|Mathematics AI \\\\${level}\\\\|runOriginalityCoach\\\\|This is a Mathematics\" src/services/originality/coach.js)",
+      "Bash(sqlite3 \"data/ia.db\" \"PRAGMA foreign_keys=ON; DELETE FROM exploration WHERE student_name='AA UITEST Student';\")"
     ]
   }
 }

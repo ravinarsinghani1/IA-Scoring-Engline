@@ -76,6 +76,7 @@ router.post('/:id/score', async (req, res, next) => {
     const results = await scoreCriteria(IMPLEMENTED_CRITERIA, {
       rawText: draft.raw_text,
       level: exploration.level,
+      subject: exploration.subject,
       pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,
     });
 
@@ -102,6 +103,7 @@ router.post('/:id/originality', async (req, res, next) => {
     const report = await runOriginalityCoach({
       rawText: draft.raw_text,
       level: exploration.level,
+      subject: exploration.subject,
       pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,
     });
     res.json(report);
@@ -120,6 +122,7 @@ router.post('/:id/similarity', async (req, res, next) => {
     const report = await runWebSourceCheck({
       rawText: draft.raw_text,
       level: exploration.level,
+      subject: exploration.subject,
       pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,
     });
     res.json(report);
@@ -138,6 +141,7 @@ router.post('/:id/authorship-advisory', async (req, res, next) => {
     const report = await runAuthorshipAdvisory({
       rawText: draft.raw_text,
       level: exploration.level,
+      subject: exploration.subject,
       pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,
     });
     res.json(report);

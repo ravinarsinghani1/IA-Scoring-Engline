@@ -6,6 +6,17 @@
 import fs from 'node:fs';
 import { readPdfBase64 } from './pdf.js';
 
+// Human-readable IB course label. Criteria A–E are identical across AA and AI;
+// the subject only sets the context so "commensurate with the course" is judged
+// against the right syllabus.
+export function courseLabel(subject, level) {
+  const s =
+    subject === 'AA'
+      ? 'Analysis and Approaches (AA)'
+      : 'Applications and Interpretation (AI)';
+  return `Mathematics: ${s} ${level}`;
+}
+
 export function buildExplorationContent({ pdfPath, rawText, instructions, pdfSuffix }) {
   const hasPdf = pdfPath && fs.existsSync(pdfPath);
   if (hasPdf) {

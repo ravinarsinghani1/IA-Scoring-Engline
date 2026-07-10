@@ -13,7 +13,7 @@
 // from Turnitin and reproducing it unreliably could wrongly accuse a real student.
 
 import { getAnthropicClient, SCORING_MODEL } from '../anthropicClient.js';
-import { buildExplorationContent } from '../promptContent.js';
+import { buildExplorationContent, courseLabel } from '../promptContent.js';
 
 export const ITEM_CATEGORIES = [
   'missing_citation', // a claim/figure/formula/quote/data that needs a source
@@ -33,7 +33,7 @@ const CHECKLIST_LABELS = [
   'Claims supported by evidence, working, or sources',
 ];
 
-const SYSTEM_PROMPT = `You are an IB academic-integrity and writing mentor helping a student make their Mathematics: Applications and Interpretation exploration genuinely their OWN work.
+const SYSTEM_PROMPT = `You are an IB academic-integrity and writing mentor helping a student make their IB Mathematics exploration (Applications & Interpretation or Analysis & Approaches) genuinely their OWN work.
 
 Context: the student's file has already been through Turnitin, which reports a similarity score, an AI-writing score, and matched sources. Do NOT reproduce those — do not output an AI percentage, a similarity percentage, or a list of matched sources. Your job is the layer Turnitin does not provide: coaching the student toward authentic authorship and sound academic practice.
 
@@ -90,10 +90,10 @@ const schema = {
  * Produce an originality/authenticity coaching report for a draft.
  * @param {{ rawText: string, level: 'SL'|'HL', pdfPath?: string|null }} draft
  */
-export async function runOriginalityCoach({ rawText, level, pdfPath = null }) {
+export async function runOriginalityCoach({ rawText, level, subject = 'AI', pdfPath = null }) {
   const client = getAnthropicClient();
 
-  const instructions = `This is a Mathematics AI ${level} exploration. Produce an authenticity & originality coaching report.
+  const instructions = `This is a ${courseLabel(subject, level)} exploration. Produce an authenticity & originality coaching report.
 
 Assess these dimensions and report concrete, actionable items for each relevant one (category codes in parentheses):
 - Statements, data, figures, formulae or quotes that need a citation (missing_citation).

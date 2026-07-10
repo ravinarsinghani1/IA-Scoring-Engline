@@ -46,6 +46,7 @@ router.post('/explorations/:id', async (req, res, next) => {
       const results = await scoreCriteria(IMPLEMENTED_CRITERIA, {
         rawText: draft.raw_text,
         level: exploration.level,
+        subject: exploration.subject,
         pdfPath: draft.source_kind === 'pdf' ? draft.source_file_path : null,
       });
       const prev = await getPreviousDraft(exploration.id, draft.draft_number);

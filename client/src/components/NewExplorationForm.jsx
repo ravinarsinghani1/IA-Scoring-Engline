@@ -1,28 +1,36 @@
 import { useState } from 'react';
 import { api } from '../api.js';
 
+const COURSES = [
+  { key: 'AA-SL', subject: 'AA', level: 'SL', label: 'Mathematics AA SL' },
+  { key: 'AA-HL', subject: 'AA', level: 'HL', label: 'Mathematics AA HL' },
+  { key: 'AI-SL', subject: 'AI', level: 'SL', label: 'Mathematics AI SL' },
+  { key: 'AI-HL', subject: 'AI', level: 'HL', label: 'Mathematics AI HL' },
+];
+
 export default function NewExplorationForm({ folderId = null, onCreated, onError }) {
   const [studentName, setStudentName] = useState('');
   const [studentId, setStudentId] = useState('');
-  const [level, setLevel] = useState('SL');
+  const [course, setCourse] = useState('AI-SL');
   const [busy, setBusy] = useState(false);
 
   const submit = async (e) => {
     e.preventDefault();
     if (!studentName.trim()) return;
+    const c = COURSES.find((x) => x.key === course);
     setBusy(true);
     onError(null);
     try {
       const created = await api.createExploration({
         studentName: studentName.trim(),
         studentId: studentId.trim() || undefined,
-        subject: 'AI',
-        level,
+        subject: c.subject,
+        level: c.level,
         folderId,
       });
       setStudentName('');
       setStudentId('');
-      setLevel('SL');
+      setCourse('AI-SL');
       onCreated(created);
     } catch (err) {
       onError(err.message);
@@ -56,20 +64,20 @@ export default function NewExplorationForm({ folderId = null, onCreated, onError
         className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
       />
 
-      <label className="mb-1 block text-xs font-medium text-slate-500">Level</label>
-      <div className="mb-4 flex gap-2">
-        {['SL', 'HL'].map((lvl) => (
+      <label className="mb-1 block text-xs font-medium text-slate-500">Course</label>
+      <div className="mb-4 grid grid-cols-2 gap-2">
+        {COURSES.map((c) => (
           <button
             type="button"
-            key={lvl}
-            onClick={() => setLevel(lvl)}
-            className={`flex-1 rounded-md border px-3 py-1.5 text-sm font-medium transition ${
-              level === lvl
+            key={c.key}
+            onClick={() => setCourse(c.key)}
+            className={`rounded-md border px-2 py-1.5 text-sm font-medium transition ${
+              course === c.key
                 ? 'border-slate-800 bg-slate-800 text-white'
                 : 'border-slate-300 bg-white text-slate-600 hover:border-slate-400'
             }`}
           >
-            Mathematics AI {lvl}
+            {c.label}
           </button>
         ))}
       </div>

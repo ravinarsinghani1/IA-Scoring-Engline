@@ -42,6 +42,9 @@ router.post('/', async (req, res, next) => {
     if (!['SL', 'HL'].includes(level)) {
       return res.status(400).json({ error: "level must be 'SL' or 'HL'" });
     }
+    if (!['AI', 'AA'].includes(subject)) {
+      return res.status(400).json({ error: "subject must be 'AI' or 'AA'" });
+    }
     const exploration = await createExploration({
       studentName: studentName.trim(),
       studentId: studentId?.trim() || null,

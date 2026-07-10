@@ -4,10 +4,10 @@
 // steps can reuse it for D, E and C.
 
 import { getAnthropicClient, SCORING_MODEL } from '../anthropicClient.js';
-import { buildExplorationContent } from '../promptContent.js';
+import { buildExplorationContent, courseLabel } from '../promptContent.js';
 import { CRITERIA } from './criteria.js';
 
-const SYSTEM_PROMPT = `You are an experienced IB Mathematics: Applications and Interpretation (AI) examiner, moderating a student's Internal Assessment ("the exploration").
+const SYSTEM_PROMPT = `You are an experienced IB Mathematics examiner (both Applications & Interpretation and Analysis & Approaches), moderating a student's Internal Assessment ("the exploration"). The assessment criteria are identical for both courses.
 
 Your job is to award a mark for each requested assessment criterion using IB's official "best-fit" method:
 - Read every markband descriptor for the criterion.
@@ -104,7 +104,7 @@ function buildSchema(keys, level) {
  * @param {{ rawText: string, level: 'SL'|'HL', pdfPath?: string|null }} draft
  * @returns {Promise<Array<{criterion, engine_mark, max_mark, confidence_tier, reasoning_summary, improvement_suggestion}>>}
  */
-export async function scoreCriteria(keys, { rawText, level, pdfPath = null }) {
+export async function scoreCriteria(keys, { rawText, level, subject = 'AI', pdfPath = null }) {
   const client = getAnthropicClient();
   const schema = buildSchema(keys, level);
 
@@ -112,7 +112,7 @@ export async function scoreCriteria(keys, { rawText, level, pdfPath = null }) {
   const hasLow = keys.some((k) => CRITERIA[k].confidenceTier === 'low');
   const hasE = keys.includes('E');
 
-  const instructions = `This is a Mathematics AI ${level} exploration.
+  const instructions = `This is a ${courseLabel(subject, level)} exploration.
 
 Assess the following criteria using best-fit. ${
     keys.length > 1 ? 'Score each independently.' : ''

@@ -8,7 +8,7 @@
 // to check (ask them to explain / reproduce the work). The teacher judges.
 
 import { getAnthropicClient, SCORING_MODEL } from '../anthropicClient.js';
-import { buildExplorationContent } from '../promptContent.js';
+import { buildExplorationContent, courseLabel } from '../promptContent.js';
 
 const SYSTEM_PROMPT = `You help an IB teacher decide which passages of a student's Mathematics exploration are worth a good-faith conversation about authorship. You are a conversation-starter for a human, not a detector.
 
@@ -52,10 +52,10 @@ const schema = {
   required: ['overall', 'summary', 'flags'],
 };
 
-export async function runAuthorshipAdvisory({ rawText, level, pdfPath = null }) {
+export async function runAuthorshipAdvisory({ rawText, level, subject = 'AI', pdfPath = null }) {
   const client = getAnthropicClient();
 
-  const instructions = `This is a Mathematics AI ${level} exploration. Produce a passage-level authorship advisory for the teacher: which passages (if any) are worth a good-faith conversation with the student about authorship, and how to check. Remember: no percentages, no verdicts — signals and checks only.`;
+  const instructions = `This is a ${courseLabel(subject, level)} exploration. Produce a passage-level authorship advisory for the teacher: which passages (if any) are worth a good-faith conversation with the student about authorship, and how to check. Remember: no percentages, no verdicts — signals and checks only.`;
 
   const userContent = buildExplorationContent({
     pdfPath,

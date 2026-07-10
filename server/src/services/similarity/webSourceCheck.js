@@ -11,7 +11,7 @@
 // "pause_turn", which we continue by re-sending the accumulated messages.
 
 import { getAnthropicClient, SCORING_MODEL } from '../anthropicClient.js';
-import { buildExplorationContent } from '../promptContent.js';
+import { buildExplorationContent, courseLabel } from '../promptContent.js';
 
 const SYSTEM_PROMPT = `You are an academic-integrity assistant running a SOURCE-MATCH (similarity) check on an IB Mathematics exploration. Your goal is to find passages in the student's writing that closely match publicly available web sources, so the student can properly CITE them or genuinely REWRITE them in their own words.
 
@@ -29,10 +29,10 @@ End your reply with a SINGLE JSON object and nothing after it, exactly this shap
 {"assessment":"none|some|substantial","summary":"1-2 sentence overview","matches":[{"passage":"short quote from the exploration","source_title":"page/source title","source_url":"https://...","match_type":"close-copy|close-paraphrase|common-knowledge","recommendation":"what to do: cite or rewrite, specifically"}]}
 If you find no meaningful matches, return "assessment":"none" and an empty "matches" array.`;
 
-export async function runWebSourceCheck({ rawText, level, pdfPath = null }) {
+export async function runWebSourceCheck({ rawText, level, subject = 'AI', pdfPath = null }) {
   const client = getAnthropicClient();
 
-  const instructions = `This is a Mathematics AI ${level} exploration. Perform a public-web source-match (similarity) check and report matched passages with their sources.`;
+  const instructions = `This is a ${courseLabel(subject, level)} exploration. Perform a public-web source-match (similarity) check and report matched passages with their sources.`;
 
   const userContent = buildExplorationContent({
     pdfPath,

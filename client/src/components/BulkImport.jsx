@@ -30,6 +30,7 @@ export default function BulkImport({ onDone, onError }) {
         id: ++_uid,
         file,
         studentName: file.name.replace(/\.pdf$/i, ''),
+        subject: 'AI',
         level: 'SL',
         teacher: emptyMarks(),
         ib: emptyMarks(),
@@ -52,7 +53,7 @@ export default function BulkImport({ onDone, onError }) {
       try {
         const exp = await api.createExploration({
           studentName: row.studentName.trim() || row.file.name,
-          subject: 'AI',
+          subject: row.subject,
           level: row.level,
         });
         await api.submitDraftFile(exp.id, row.file);
@@ -99,7 +100,7 @@ export default function BulkImport({ onDone, onError }) {
               <thead>
                 <tr className="border-b border-slate-200 text-left text-slate-500">
                   <th className="py-2 pr-3">Student / file</th>
-                  <th className="py-2 pr-3">Level</th>
+                  <th className="py-2 pr-3">Course</th>
                   {CRITERIA_META.map((c) => (
                     <th key={c.k} className="py-2 pr-2 text-center">
                       {c.k}
@@ -126,12 +127,17 @@ export default function BulkImport({ onDone, onError }) {
                     </td>
                     <td className="py-2 pr-3">
                       <select
-                        value={row.level}
-                        onChange={(e) => patch(row.id, { level: e.target.value })}
+                        value={`${row.subject}-${row.level}`}
+                        onChange={(e) => {
+                          const [subject, level] = e.target.value.split('-');
+                          patch(row.id, { subject, level });
+                        }}
                         className="rounded border border-slate-300 px-1 py-1"
                       >
-                        <option>SL</option>
-                        <option>HL</option>
+                        <option value="AA-SL">AA SL</option>
+                        <option value="AA-HL">AA HL</option>
+                        <option value="AI-SL">AI SL</option>
+                        <option value="AI-HL">AI HL</option>
                       </select>
                     </td>
                     {CRITERIA_META.map((c) => (
