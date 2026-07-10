@@ -1,0 +1,29 @@
+{
+  "name": "Namrata J Nair",
+  "course": "AA",
+  "level": "SL",
+  "date": "10 July 2026",
+  "title": "A Comparative Analysis of the Surface Areas of Chicken Eggs from Two Distinct Brands",
+  "verdict": "Approved with revisions",
+  "verdictSummary": "Genuinely ambitious calculus and strong primary data. But your core method sits beyond AA SL, so it must show real understanding (not a calculator black box); the research question and brand comparison need sharpening; and the egg-tip modelling pitfall must be solved.",
+  "strengths": [
+    "Real analytic calculus at the core — a solid of revolution with the derivative inside the integrand, definite integration, and a squared scale-factor conversion. Ambitious for AA SL and, done with understanding, strong for Criterion E.",
+    "Primary, hands-on data (your own eggs, callipers, photographs), and the rotational-symmetry assumption is genuinely reasonable for an egg — an egg really is close to a body of revolution.",
+    "Good awareness of pitfalls already (scale anomalies, boundary clipping, polynomial vs spline) and an excellent extension idea in the surface-area-to-volume ratio."
+  ],
+  "revisions": [
+    { "label": "Your core method is beyond AA SL — so show understanding, not just a calculator answer.", "text": "Surface area of a solid of revolution, S = ∫ 2πy·√(1+(dy/dx)²) dx, is above the SL syllabus. That is allowed and impressive, but “the GDC does it because it is too complex by hand” will cap Criterion E. Derive or explain the formula, write the integral out explicitly for at least one egg, show the setup and reasoning, and justify the numerical method. Correctness and understanding — not a black-box number — earn the marks." },
+    { "label": "Sharpen the research question — right now it is procedural.", "text": "Reframe around the modelling, e.g. “How accurately can a solid-of-revolution model estimate chicken-egg shell surface area, and is there a measurable difference between two brands?” Make the mathematics (modelling + calculus) the spine and the brand comparison the hook — not the reverse." },
+    { "label": "Fix the model, and handle the egg tips.", "text": "A 6th-degree polynomial fit oscillates and — critically — fails at the pointed ends, where the tangent is vertical (dy/dx → ∞) and √(1+(dy/dx)²) blows up. This is the #1 error in egg surface-area IAs. Compare your polynomial regression against a genuine egg/ovoid curve (or an ellipse baseline), integrate with respect to the variable that keeps the tips finite (or treat the tips separately), and justify the choice mathematically." },
+    { "label": "Be realistic about the statistics — n = 5 per brand cannot support “statistically distinct”.", "text": "At AA SL, formal significance tests are not the syllabus, and five eggs cannot ground a strong claim. Either enlarge the sample and present an honest descriptive comparison (mean, spread, % difference), or de-emphasise the statistical claim and let the calculus carry the exploration. Reflect explicitly on the sample-size limitation." },
+    { "label": "Deepen personal engagement and tighten the prose.", "text": "The “why it matters” currently reads a little generic. Bring in your own genuine curiosity and decisions — why these two brands, what you expected, what surprised you. And keep the writing concise; elaborate phrasing costs marks on Presentation rather than gaining them." }
+  ],
+  "checklist": {
+    "A": ["intro→aim→conclusion clear", "every graph/figure in-body", "concise — trim elaborate phrasing"],
+    "B": ["write the integral & derivative in proper notation (not GDC/Desmos syntax)", "define every variable, unit & the scale factor k", "consistent throughout"],
+    "C": ["own eggs & measurements", "genuine personal reason & expectations stated", "your own modelling decisions justified"],
+    "D": ["reflection in every section (not just Step 5)", "symmetry & vertical-tangent assumptions evaluated", "polynomial vs ovoid model weighed", "n = 5 limitation discussed"],
+    "E": ["surface-of-revolution formula derived/explained", "integral written out & set up by hand for one egg", "numerical method justified", "units converted with k² correctly", "all results checked for correctness"]
+  },
+  "nextStep": "Reply with which two brands you will use, how many eggs you can realistically measure, and whether you will compare your polynomial fit against a known egg curve. Then we lock the model and the exact integral setup."
+}

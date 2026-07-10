@@ -1,0 +1,29 @@
+{
+  "name": "Samaaya",
+  "course": "AA",
+  "level": "SL",
+  "date": "10 July 2026",
+  "title": "A Mathematical Comparison of Traditional Newari Wooden Windows and Mughal Jali Screens",
+  "verdict": "Approved with revisions",
+  "verdictSummary": "A strong topic with a genuine personal connection. Before you begin, the research question needs to become measurable and the mathematics needs more analytic depth to reach the AA SL top band.",
+  "strengths": [
+    "Your personal connection is authentic — living in Nepal, surrounded by Newari architecture. Keep your own photographs and measurements at the centre of the work; that is exactly what the top of the personal-engagement criterion rewards.",
+    "The solid-to-void ratio is your strongest idea. It turns “these look different” into a single defensible number per screen — build the exploration around measurable comparisons like it.",
+    "Coordinate modelling in GeoGebra with the Shoelace formula for area is appropriate and clean."
+  ],
+  "revisions": [
+    { "label": "Narrow to two specific, named artifacts.", "text": "You cannot do rigorous maths on whole traditions. Choose one specific Newari window (ideally one you can photograph yourself — name the building and place) and one named Mughal jali (e.g. from Fatehpur Sikri or the Sidi Saiyyed mosque). Do all the maths on those two objects." },
+    { "label": "Make the research question measurable, and state a hypothesis.", "text": "Replace “differences and similarities” with a question answered by computed quantities — e.g. how the two compare in rotational symmetry, angular construction, and void-to-solid ratio. Predict the Newari lattice is a rectilinear grid (low rotational order) while the jali uses high-order star-polygon symmetry, then test it." },
+    { "label": "Go deeper than polygons — decisive for your mathematics mark.", "text": "Derive angles with trigonometry rather than measuring them with a protractor; model the curved / cusped elements with functions and use integration for their areas; include one short piece of reasoning or proof (e.g. that a star motif’s outer points are concyclic). Treating everything as a polygon is the single biggest limiter on Criterion E." },
+    { "label": "Thread reflection throughout, not just at the end.", "text": "Address perspective distortion honestly — a photo of a window is rarely perfectly head-on, and this corrupts your void-ratio numbers; explain how you corrected or estimated the error. Also reflect on why carved stone versus jointed wood constrains the geometry differently." },
+    { "label": "Treat the Golden Ratio extension with caution.", "text": "Only include it if you test it honestly (state the measured ratio and its uncertainty, and be willing to conclude it is not φ). Forced golden-ratio conclusions cost marks." }
+  ],
+  "checklist": {
+    "A": ["intro→aim→conclusion clear", "every figure in-body (none in appendices)", "concise, no padding"],
+    "B": ["correct notation (not calculator/GeoGebra syntax)", "every variable, unit & photo scale defined", "consistent throughout"],
+    "C": ["own photos & measurements", "personal reason stated", "your own questions, not textbook material"],
+    "D": ["reflection in every section (not just the end)", "perspective-distortion error discussed", "limits of one representative artifact weighed"],
+    "E": ["specific named artifacts", "angles derived, not measured", "curves modelled + integrated", "one short proof", "all results checked for correctness"]
+  },
+  "nextStep": "Reply with your two chosen artifacts and whether you can photograph the Newari window yourself. Then we finalize the research question and lock the exact mathematical techniques for each comparison."
+}
