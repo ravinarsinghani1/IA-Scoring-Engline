@@ -1,13 +1,14 @@
 // Central Anthropic client. The API key lives ONLY on the server (loaded from
 // server/.env via dotenv) and is never exposed to the frontend.
 //
-// Model default is Claude Opus 4.8 — the most capable model, appropriate for
-// nuanced IB best-fit assessment. Override with SCORING_MODEL in .env (e.g.
-// `claude-sonnet-5`) to trade some quality for lower cost during a pilot.
+// Model default is Claude Sonnet 5 — strong at nuanced IB best-fit assessment
+// while keeping per-exploration cost low, which suits a pilot/deployed use.
+// Override with SCORING_MODEL in .env (e.g. `claude-opus-4-8`) for maximum
+// quality at higher cost.
 
 import Anthropic from '@anthropic-ai/sdk';
 
-export const SCORING_MODEL = process.env.SCORING_MODEL || 'claude-opus-4-8';
+export const SCORING_MODEL = process.env.SCORING_MODEL || 'claude-sonnet-5';
 
 let client = null;
 

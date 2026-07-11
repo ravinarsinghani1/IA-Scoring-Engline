@@ -17,7 +17,7 @@ export async function createDraft({
     `INSERT INTO draft
        (exploration_id, draft_number, raw_text, extracted_math_content, word_count,
         page_count, source_kind, source_file_name)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id`,
     [
       explorationId,
       draftNumber,

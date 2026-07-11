@@ -22,7 +22,27 @@
       "Bash(sqlite3 \"data/ia.db\" \"SELECT COUNT\\(*\\) FROM folder;\")",
       "Bash(echo \"remaining folders: $\\(sqlite3 \"data/ia.db\" \"SELECT COUNT\\(*\\) FROM folder;\"\\)\")",
       "Bash(grep -n \"Applications and Interpretation\\\\|Mathematics AI \\\\${level}\\\\|runOriginalityCoach\\\\|This is a Mathematics\" src/services/originality/coach.js)",
-      "Bash(sqlite3 \"data/ia.db\" \"PRAGMA foreign_keys=ON; DELETE FROM exploration WHERE student_name='AA UITEST Student';\")"
+      "Bash(sqlite3 \"data/ia.db\" \"PRAGMA foreign_keys=ON; DELETE FROM exploration WHERE student_name='AA UITEST Student';\")",
+      "Bash(python3 -c ' *)",
+      "Bash(pip3 install *)",
+      "Bash(python3 -m pip install pypdf --quiet)",
+      "Bash(npm install *)",
+      "Bash(npm root *)",
+      "Bash(node generate-feedback.js candidates/samaaya-newari-jali.json \"/Users/admin/Downloads/Samaaya_IA_Topic_Feedback.docx\")",
+      "Bash(python3 '/Users/admin/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/d6feefc0-21ac-4a08-9e97-e02657d72880/ea3b1ae2-1b29-4cb2-a37b-9ea9a0881994/skills/docx/scripts/office/validate.py' /Users/admin/Downloads/Samaaya_IA_Topic_Feedback.docx)",
+      "Bash(python3 '/Users/admin/Library/Application Support/Claude/local-agent-mode-sessions/skills-plugin/d6feefc0-21ac-4a08-9e97-e02657d72880/ea3b1ae2-1b29-4cb2-a37b-9ea9a0881994/skills/docx/scripts/office/soffice.py' --headless --convert-to pdf /Users/admin/Downloads/Samaaya_IA_Topic_Feedback.docx)",
+      "Bash(python3 -c \"from pypdf import PdfReader; print\\('PAGES:', len\\(PdfReader\\('Samaaya_IA_Topic_Feedback.pdf'\\).pages\\)\\)\")",
+      "Bash(pandoc \"/Users/admin/Downloads/Samaaya_IA_Topic_Feedback.docx\" -t plain)",
+      "Bash(node generate-feedback.js candidates/namrata-egg-surface-area.json \"/Users/admin/Downloads/Namrata_IA_Topic_Feedback.docx\")",
+      "Bash(echo \"exit=$?\")",
+      "Bash(gh auth *)",
+      "Bash(gh --version)",
+      "Bash(git remote *)",
+      "Bash(git push *)",
+      "Bash(npm uninstall *)",
+      "Bash(node --input-type=module -e ' *)",
+      "Bash(git add *)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }

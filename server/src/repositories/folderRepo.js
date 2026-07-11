@@ -3,7 +3,7 @@
 import { db } from '../db/connection.js';
 
 export async function createFolder(name) {
-  const result = await db.run(`INSERT INTO folder (name) VALUES (?)`, [name]);
+  const result = await db.run(`INSERT INTO folder (name) VALUES (?) RETURNING id`, [name]);
   return getFolderById(result.lastInsertRowid);
 }
 

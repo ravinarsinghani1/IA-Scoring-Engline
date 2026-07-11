@@ -13,7 +13,7 @@ export async function createExploration({
 }) {
   const result = await db.run(
     `INSERT INTO exploration (student_name, student_id, subject, level, folder_id)
-     VALUES (?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?) RETURNING id`,
     [studentName, studentId, subject, level, folderId]
   );
   return getExplorationById(result.lastInsertRowid);

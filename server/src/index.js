@@ -8,9 +8,6 @@ import draftsRouter from './routes/drafts.js';
 import validationRouter from './routes/validation.js';
 import foldersRouter from './routes/folders.js';
 
-// Ensure schema (and any later-added columns) exist on startup. Idempotent.
-ensureSchema();
-
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '5mb' })); // explorations can be long
@@ -47,6 +44,15 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`✓ IA scoring server listening on http://localhost:${PORT}`);
-});
+
+// Ensure the schema exists, then start listening. Idempotent on every boot.
+ensureSchema()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`✓ IA scoring server listening on http://localhost:${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error('✗ Failed to initialize database schema:', err.message);
+    process.exit(1);
+  });
