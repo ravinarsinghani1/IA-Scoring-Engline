@@ -1,17 +1,10 @@
 // PDF handling: extract text + page count (for word/page metrics and preview),
-// and persist the uploaded file so it can be re-sent to the model at scoring
-// time. The ACTUAL PDF — not the extracted text — is what gets scored, so
-// figures, graphs and equations are preserved.
+// and persist the uploaded file to object storage so it can be re-sent to the
+// model at scoring time. The ACTUAL PDF — not the extracted text — is what gets
+// scored, so figures, graphs and equations are preserved.
 
-import fs from 'node:fs';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
 import { PDFParse } from 'pdf-parse'; // v2 class-based API
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
-export const UPLOADS_DIR = path.join(__dirname, '..', '..', 'data', 'uploads');
-
-fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+import { uploadPdf, downloadPdfBase64 } from './storage.js';
 
 /** Best-effort text + page count from a PDF buffer. Never throws. */
 export async function extractPdf(buffer) {
@@ -24,14 +17,12 @@ export async function extractPdf(buffer) {
   }
 }
 
-/** Persist a PDF buffer for a draft; returns the absolute file path. */
-export function savePdf(draftId, buffer) {
-  const filePath = path.join(UPLOADS_DIR, `draft_${draftId}.pdf`);
-  fs.writeFileSync(filePath, buffer);
-  return filePath;
+/** Persist a PDF buffer for a draft in object storage; returns its object key. */
+export async function savePdf(draftId, buffer) {
+  return uploadPdf(`draft_${draftId}.pdf`, buffer);
 }
 
-/** Read a stored PDF back as a base64 string for the Claude document block. */
-export function readPdfBase64(filePath) {
-  return fs.readFileSync(filePath).toString('base64');
+/** Read a stored PDF back as base64 for the Claude document block. */
+export async function readPdfBase64(key) {
+  return downloadPdfBase64(key);
 }

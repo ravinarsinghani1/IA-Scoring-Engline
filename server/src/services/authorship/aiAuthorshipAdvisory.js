@@ -57,7 +57,7 @@ export async function runAuthorshipAdvisory({ rawText, level, subject = 'AI', pd
 
   const instructions = `This is a ${courseLabel(subject, level)} exploration. Produce a passage-level authorship advisory for the teacher: which passages (if any) are worth a good-faith conversation with the student about authorship, and how to check. Remember: no percentages, no verdicts — signals and checks only.`;
 
-  const userContent = buildExplorationContent({
+  const userContent = await buildExplorationContent({
     pdfPath,
     rawText,
     instructions,

@@ -3,7 +3,6 @@
 // first) so figures, graphs and equations are seen; otherwise the extracted /
 // pasted text is used. Shared by the scorer and the originality coach.
 
-import fs from 'node:fs';
 import { readPdfBase64 } from './pdf.js';
 
 // Human-readable IB course label. Criteria A–E are identical across AA and AI;
@@ -17,16 +16,23 @@ export function courseLabel(subject, level) {
   return `Mathematics: ${s} ${level}`;
 }
 
-export function buildExplorationContent({ pdfPath, rawText, instructions, pdfSuffix }) {
-  const hasPdf = pdfPath && fs.existsSync(pdfPath);
-  if (hasPdf) {
-    return [
-      {
-        type: 'document',
-        source: { type: 'base64', media_type: 'application/pdf', data: readPdfBase64(pdfPath) },
-      },
-      { type: 'text', text: `${instructions}\n\n${pdfSuffix}` },
-    ];
+// `pdfPath` is a storage object key (set only when the draft was a PDF upload).
+// If present, we attach the actual PDF; if the download fails for any reason,
+// we fall back to the extracted text rather than failing the whole call.
+export async function buildExplorationContent({ pdfPath, rawText, instructions, pdfSuffix }) {
+  if (pdfPath) {
+    try {
+      const data = await readPdfBase64(pdfPath);
+      return [
+        {
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data },
+        },
+        { type: 'text', text: `${instructions}\n\n${pdfSuffix}` },
+      ];
+    } catch (err) {
+      console.error('[promptContent] PDF unavailable, falling back to text:', err.message);
+    }
   }
   return [
     {

@@ -34,7 +34,7 @@ export async function runWebSourceCheck({ rawText, level, subject = 'AI', pdfPat
 
   const instructions = `This is a ${courseLabel(subject, level)} exploration. Perform a public-web source-match (similarity) check and report matched passages with their sources.`;
 
-  const userContent = buildExplorationContent({
+  const userContent = await buildExplorationContent({
     pdfPath,
     rawText,
     instructions,

@@ -104,8 +104,8 @@ router.post('/:id/drafts', upload.single('file'), async (req, res, next) => {
         sourceKind: 'pdf',
         sourceFileName: req.file.originalname,
       });
-      const filePath = savePdf(draft.id, req.file.buffer);
-      draft = await setDraftSourceFilePath(draft.id, filePath);
+      const objectKey = await savePdf(draft.id, req.file.buffer);
+      draft = await setDraftSourceFilePath(draft.id, objectKey);
     } else {
       // --- Pasted-text path ---
       const { rawText } = req.body ?? {};

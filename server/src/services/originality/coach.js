@@ -109,7 +109,7 @@ ${CHECKLIST_LABELS.map((l) => `- ${l}`).join('\n')}
 
 Set "readiness" to your honest overall judgement (strong / needs_work / significant_concerns), and write a short, encouraging "summary". Remember: this is coaching toward genuinely authentic work; it is NOT a certificate of authenticity and NOT a detector.`;
 
-  const userContent = buildExplorationContent({
+  const userContent = await buildExplorationContent({
     pdfPath,
     rawText,
     instructions,

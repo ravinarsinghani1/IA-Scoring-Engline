@@ -132,7 +132,7 @@ ${keys.map((k) => criterionBlock(k, level)).join('\n\n')}${
       : ''
   }`;
 
-  const userContent = buildExplorationContent({
+  const userContent = await buildExplorationContent({
     pdfPath,
     rawText,
     instructions,
