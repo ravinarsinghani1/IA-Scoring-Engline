@@ -3,6 +3,7 @@
   "installCommand": "npm install && npm --prefix server install && npm --prefix client install",
   "buildCommand": "npm --prefix client run build",
   "outputDirectory": "client/dist",
+  "regions": ["syd1"],
   "functions": {
     "api/index.mjs": { "maxDuration": 60 }
   },
