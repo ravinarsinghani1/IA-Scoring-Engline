@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "description": "IB Math IA Scoring Engine — root launcher for the client + server",
+  "engines": {
+    "node": "22.x"
+  },
   "scripts": {
     "setup": "npm --prefix server install && npm --prefix client install",
     "predev": "npm run free-ports",

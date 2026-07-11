@@ -42,7 +42,8 @@
       "Bash(npm uninstall *)",
       "Bash(node --input-type=module -e ' *)",
       "Bash(git add *)",
-      "Bash(git commit -q -m ' *)"
+      "Bash(git commit -q -m ' *)",
+      "Bash(npm --prefix client run build)"
     ]
   }
 }
