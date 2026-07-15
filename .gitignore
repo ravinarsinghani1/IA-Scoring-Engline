@@ -25,3 +25,6 @@ npm-debug.log*
 
 # OS
 .DS_Store
+
+# Local secret helper — never commit (may contain DB password)
+server/set-db-password.sh
