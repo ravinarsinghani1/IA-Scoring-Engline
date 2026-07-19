@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@600;700&family=Libre+Franklin:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+  <style>
+    body { margin:0; background:#F7F5F1; }
+    a { color:#5C8F7E; }
+    a:hover { color:#12333A; }
+    .katex { font-size:1.02em; }
+  </style>
+</helmet>
+<div style="display:flex;min-height:100vh;background:#F7F5F1;font-family:'Libre Franklin',sans-serif;color:#2B2B28">
+
+  <div style="width:236px;flex-shrink:0;background:#12333A;display:flex;flex-direction:column;padding:26px 18px;position:fixed;top:0;left:0;bottom:0;overflow-y:auto">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:2px;padding:0 10px">
+      <div style="width:20px;height:20px;position:relative;transform:rotate(45deg);background:#5C8F7E;border-radius:6px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <div style="width:8px;height:8px;background:#F7F5F1;border-radius:50%;transform:rotate(-45deg)"></div>
+      </div>
+      <span style="font-family:'Source Serif 4',serif;font-weight:700;font-size:18px;color:#F7F5F1">Saaryavi</span>
+    </div>
+    <div style="font-size:10.5px;letter-spacing:0.09em;text-transform:uppercase;color:#8FB0A5;margin:2px 0 26px 40px;font-weight:600">Question Bank</div>
+
+    <sc-for list="{{navItemsView}}" as="item" hint-placeholder-count="7">
+      <div style="{{item.rowStyle}}">
+        <span style="width:6px;height:6px;border-radius:1px;background:currentColor;display:inline-block;flex-shrink:0"></span>
+        <span>{{item.label}}</span>
+      </div>
+    </sc-for>
+
+    <div style="margin-top:auto;padding-top:18px;border-top:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:12px">
+      <div style="width:34px;height:34px;border-radius:50%;background:#5C8F7E;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:12.5px;flex-shrink:0">PA</div>
+      <div>
+        <div style="font-size:13.5px;font-weight:700;color:#F7F5F1">Priya Anand</div>
+        <div style="font-size:11px;color:rgba(247,245,241,.6)">DP Mathematics Teacher</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-left:236px;flex:1;padding:44px 56px 140px;max-width:920px">
+
+    <div style="font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#5C8F7E;font-weight:700;margin-bottom:10px">Question Bank</div>
+
+    <sc-if value="{{isGenerateView}}" hint-placeholder-val="{{true}}">
+      <h1 style="font-family:'Source Serif 4',serif;font-size:32px;font-weight:700;color:#12333A;margin:0 0 8px">Generate a question</h1>
+      <p style="font-size:15px;color:#6C6E66;margin:0 0 30px;max-width:600px;line-height:1.6">Create an original, exam-calibrated DP Mathematics question in under a minute. Every question is generated fresh — this is not a saved library.</p>
+
+      <div style="display:flex;gap:28px;margin-bottom:26px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#12333A;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Course</div>
+          <div style="display:inline-flex;background:#EDEAE2;border-radius:8px;padding:3px;gap:2px">
+            <button style="{{courseAAStyle}}" onClick="{{selectCourseAA}}">Math AA</button>
+            <button style="{{courseAIStyle}}" onClick="{{selectCourseAI}}">Math AI</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-size:12px;font-weight:700;color:#12333A;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Level</div>
+          <div style="display:inline-flex;background:#EDEAE2;border-radius:8px;padding:3px;gap:2px">
+            <button style="{{levelSLStyle}}" onClick="{{selectLevelSL}}">SL</button>
+            <button style="{{levelHLStyle}}" onClick="{{selectLevelHL}}">HL</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:#12333A;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Topic</div>
+
+      <div style="border:1px solid #E0DCD3;border-radius:8px;background:#fff;overflow:hidden;margin-bottom:28px">
+        <sc-for list="{{topicsView}}" as="topic" hint-placeholder-count="5">
+          <div style="border-bottom:1px solid #E0DCD3">
+            <div onClick="{{topic.toggleExpand}}" style="display:flex;align-items:center;gap:12px;padding:14px 18px;cursor:pointer">
+              <span style="{{topic.chevronStyle}}">▸</span>
+              <span style="font-size:14px;font-weight:700;color:#12333A;flex:1">{{topic.name}}</span>
+              <sc-if value="{{topic.hasSelection}}" hint-placeholder-val="{{false}}">
+                <span style="font-size:11.5px;color:#2F5C4C;font-weight:700;background:#EDF3F0;padding:3px 10px;border-radius:20px">{{topic.selectedLabel}}</span>
+              </sc-if>
+            </div>
+            <sc-if value="{{topic.expanded}}" hint-placeholder-val="{{false}}">
+              <sc-for list="{{topic.subtopics}}" as="sub" hint-placeholder-count="4">
+                <label style="display:flex;align-items:center;gap:10px;padding:9px 18px 9px 42px;font-size:13.5px;color:#2B2B28;cursor:pointer;border-top:1px solid #F0EDE6">
+                  <input type="checkbox" checked="{{sub.checked}}" onChange="{{sub.toggle}}" style="width:15px;height:15px;accent-color:#12333A;flex-shrink:0" />
+                  <span><b>{{sub.code}}</b> — {{sub.name}}</span>
+                </label>
+              </sc-for>
+            </sc-if>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:#12333A;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Paper style</div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap">
+        <sc-for list="{{paperStyleOptions}}" as="opt" hint-placeholder-count="3">
+          <div onClick="{{opt.select}}" style="{{opt.cardStyle}}">
+            <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:15px;color:#12333A;margin-bottom:4px">{{opt.label}}</div>
+            <div style="font-size:12.5px;color:#6C6E66;line-height:1.4">{{opt.desc}}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:#6C6E66;margin-bottom:26px;font-style:italic">
+        <span>ⓘ</span><span>{{calculatorNote}}</span>
+      </div>
+
+      <div style="font-size:12px;font-weight:700;color:#12333A;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Incline of difficulty</div>
+      <div style="display:flex;gap:12px;margin-bottom:34px;flex-wrap:wrap">
+        <sc-for list="{{difficultyOptions}}" as="d" hint-placeholder-count="3">
+          <div onClick="{{d.select}}" style="{{d.cardStyle}}">{{d.label}}</div>
+        </sc-for>
+      </div>
+
+      <button onClick="{{onGenerate}}" style="{{generateButtonStyle}}">Generate question</button>
+    </sc-if>
+
+    <sc-if value="{{isResultView}}" hint-placeholder-val="{{false}}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px">
+        <span onClick="{{backToGenerate}}" style="cursor:pointer;color:#5C8F7E;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:6px">← New question</span>
+        <div style="position:relative">
+          <button onClick="{{toggleViewOptions}}" style="background:#fff;border:1px solid #E0DCD3;color:#12333A;border-radius:6px;padding:9px 16px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;gap:6px">Display options ▾</button>
+          <sc-if value="{{viewOptionsOpen}}" hint-placeholder-val="{{false}}">
+            <div style="position:absolute;right:0;top:calc(100% + 8px);width:280px;background:#fff;border:1px solid #E0DCD3;border-radius:10px;box-shadow:0 12px 28px rgba(18,51,58,.16);padding:16px;z-index:30">
+              <sc-for list="{{displayOptionsList}}" as="opt" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F0EDE6">
+                  <span style="font-size:13.5px;color:#2B2B28">{{opt.label}}</span>
+                  <span onClick="{{opt.toggle}}" style="{{opt.trackStyle}}"><span style="{{opt.knobStyle}}"></span></span>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+
+      <sc-if value="{{showWarnings}}" hint-placeholder-val="{{true}}">
+        <div style="background:#F3E1D8;color:#8A4A2E;font-size:12.5px;font-weight:600;padding:10px 16px;border-radius:6px;margin-bottom:18px">Practice question — generated to match exam conventions, not an official IB paper.</div>
+      </sc-if>
+
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;flex-wrap:wrap;gap:12px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <span style="background:#EDF3F0;color:#2F5C4C;font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px">{{resultCourseLevelLabel}}</span>
+          <span style="background:#EDF3F0;color:#2F5C4C;font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px">{{resultTopicLabel}}</span>
+          <span style="background:#EDF3F0;color:#2F5C4C;font-size:12px;font-weight:700;padding:5px 12px;border-radius:20px">{{resultPaperStyleLabel}}</span>
+        </div>
+        <span style="background:#12333A;color:#F7F5F1;font-size:12px;font-weight:700;padding:6px 14px;border-radius:20px;white-space:nowrap">{{resultMarksLabel}}</span>
+      </div>
+
+      <sc-if value="{{showReferenceCode}}" hint-placeholder-val="{{true}}">
+        <div style="font-family:ui-monospace,monospace;font-size:11.5px;color:#9A968A;margin-bottom:6px">{{referenceCode}}</div>
+      </sc-if>
+      <div style="font-size:12px;color:#6C6E66;margin-bottom:20px">Command terms: {{commandTermsLabel}}</div>
+
+      <sc-if value="{{showQuestion}}" hint-placeholder-val="{{true}}">
+        <div style="background:#fff;border:1px solid #E0DCD3;border-radius:10px;padding:36px 40px;margin-bottom:20px;font-family:'Source Serif 4',serif;font-size:16px;line-height:1.9;color:#2B2B28">
+          {{ questionBody }}
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showAnswerSpace}}" hint-placeholder-val="{{false}}">
+        <div style="margin-bottom:20px">
+          <div style="font-size:12px;font-weight:700;color:#12333A;margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em">Space for student answers</div>
+          {{ answerSpaceBody }}
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showMarkScheme}}" hint-placeholder-val="{{true}}">
+        <div style="border:1px solid #E0DCD3;border-radius:10px;background:#fff;margin-bottom:20px;overflow:hidden">
+          <div onClick="{{toggleMarkScheme}}" style="display:flex;align-items:center;justify-content:space-between;padding:16px 20px;cursor:pointer">
+            <span style="font-weight:700;font-size:14px;color:#12333A;display:flex;align-items:center;gap:8px"><span style="{{markSchemeChevronStyle}}">▸</span> Reveal mark scheme</span>
+            <span style="font-size:12px;color:#6C6E66">{{markSchemeToggleLabel}}</span>
+          </div>
+          <sc-if value="{{markSchemeOpen}}" hint-placeholder-val="{{false}}">
+            <div style="border-top:1px solid #E0DCD3;padding:20px 24px">{{ markSchemeBody }}</div>
+          </sc-if>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{showExaminerInsight}}" hint-placeholder-val="{{false}}">
+        <div style="border:1px solid #E0DCD3;border-radius:10px;background:#FBF7F2;padding:20px 24px;margin-bottom:24px">
+          <div style="font-weight:700;font-size:14px;color:#12333A;margin-bottom:12px">Examiner insight</div>
+          {{ examinerInsightBody }}
+        </div>
+      </sc-if>
+
+      <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:16px">
+        <button onClick="{{onAddToPaper}}" style="{{addButtonStyle}}">{{addButtonLabel}}</button>
+        <button onClick="{{onExportPdf}}" style="background:#fff;color:#12333A;border:1px solid #12333A;border-radius:6px;padding:11px 20px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">↓ Export PDF</button>
+        <button onClick="{{onExportWord}}" style="background:#fff;color:#12333A;border:1px solid #12333A;border-radius:6px;padding:11px 20px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">↓ Export Word</button>
+      </div>
+      <div style="font-size:12.5px;color:#6C6E66;font-style:italic">Incline of difficulty: {{resultDifficultyLabel}}</div>
+    </sc-if>
+
+  </div>
+
+  <div style="position:fixed;right:30px;bottom:26px;z-index:40;display:flex;flex-direction:column;align-items:flex-end">
+    <sc-if value="{{trayOpen}}" hint-placeholder-val="{{false}}">
+      <div style="width:380px;max-height:58vh;overflow-y:auto;background:#fff;border:1px solid #E0DCD3;border-radius:12px;box-shadow:0 12px 32px rgba(18,51,58,.18);margin-bottom:12px;padding:20px;box-sizing:border-box">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+          <span style="font-family:'Source Serif 4',serif;font-weight:700;font-size:16px;color:#12333A">Paper builder</span>
+          <span onClick="{{toggleTray}}" style="cursor:pointer;color:#6C6E66;font-size:16px">×</span>
+        </div>
+
+        <sc-if value="{{hasPaperItems}}" hint-placeholder-val="{{false}}">
+          <sc-for list="{{paperItems}}" as="item" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid #F0EDE6">
+              <span style="color:#B9B4A8;font-size:13px;flex-shrink:0">⋮⋮</span>
+              <div style="flex:1;min-width:0">
+                <div style="font-size:13px;font-weight:700;color:#12333A">{{item.topicCode}}</div>
+                <div style="font-size:11px;color:#6C6E66">{{item.topicName}}</div>
+              </div>
+              <span style="font-size:12px;font-weight:700;color:#5C8F7E;white-space:nowrap">{{item.marksLabel}}</span>
+              <span onClick="{{item.remove}}" style="border:none;background:none;color:#B4483A;font-size:16px;cursor:pointer;padding:0 4px;flex-shrink:0">×</span>
+            </div>
+          </sc-for>
+
+          <div style="display:flex;justify-content:space-between;padding:12px 0;font-size:13px;font-weight:700;color:#12333A">
+            <span>Total</span><span>{{paperTotalMarksLabel}}</span>
+          </div>
+
+          <div style="margin-bottom:14px">
+            <sc-for list="{{distribution}}" as="d" hint-placeholder-count="5">
+              <div style="margin-bottom:8px">
+                <div style="display:flex;justify-content:space-between;font-size:11px;color:#6C6E66;margin-bottom:3px"><span>{{d.name}}</span><span>{{d.pctLabel}}</span></div>
+                <div style="height:6px;background:#F0EDE6;border-radius:3px;overflow:hidden"><div style="{{d.barStyle}}"></div></div>
+              </div>
+            </sc-for>
+          </div>
+
+          <button onClick="{{openExportModal}}" style="width:100%;background:#12333A;color:#F7F5F1;border:none;border-radius:6px;padding:12px;font-size:13.5px;font-weight:700;cursor:pointer;font-family:inherit">Export paper</button>
+        </sc-if>
+        <sc-if value="{{!hasPaperItems}}" hint-placeholder-val="{{true}}">
+          <div style="font-size:13px;color:#6C6E66;line-height:1.5;padding:6px 0 2px">No questions added yet. Generate a question, then select "Add to paper".</div>
+        </sc-if>
+      </div>
+    </sc-if>
+
+    <button onClick="{{toggleTray}}" style="background:#12333A;color:#fff;border:none;border-radius:24px;padding:12px 20px;font-size:13px;font-weight:700;display:flex;align-items:center;gap:8px;box-shadow:0 6px 18px rgba(18,51,58,.25);cursor:pointer;font-family:inherit">Paper builder{{trayBadge}}</button>
+  </div>
+
+  <sc-if value="{{exportModalOpen}}" hint-placeholder-val="{{false}}">
+    <div onClick="{{closeExportModal}}" style="position:fixed;inset:0;background:rgba(18,51,58,.45);z-index:50;display:flex;align-items:center;justify-content:center">
+      <div onClick="{{stopClick}}" style="background:#fff;border-radius:14px;padding:36px;width:560px;max-width:90vw;box-sizing:border-box">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:6px">
+          <span style="font-family:'Source Serif 4',serif;font-weight:700;font-size:22px;color:#12333A">Export paper</span>
+          <span onClick="{{closeExportModal}}" style="cursor:pointer;color:#6C6E66;font-size:20px">×</span>
+        </div>
+        <div style="font-size:13.5px;color:#6C6E66;margin-bottom:20px">{{paperSummaryLabel}}</div>
+
+        <div style="border:1px solid #E0DCD3;border-radius:8px;padding:20px;margin-bottom:20px;background:#FCFBF9">
+          <div style="font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:#5C8F7E;font-weight:700;margin-bottom:10px">Cover page preview</div>
+          <div style="font-family:'Source Serif 4',serif;font-weight:700;font-size:16px;color:#12333A;margin-bottom:4px">Saaryavi Question Bank — Practice Paper</div>
+          <div style="font-size:12px;color:#6C6E66;margin-bottom:14px">Generated {{coverDateLabel}}</div>
+          <div style="display:flex;gap:8px;margin-bottom:14px">
+            <div style="flex:1;border:1px solid #DED9CF;border-radius:4px;padding:8px 10px;font-size:11px;color:#9A968A">Candidate name</div>
+            <div style="flex:1;border:1px solid #DED9CF;border-radius:4px;padding:8px 10px;font-size:11px;color:#9A968A">Candidate number</div>
+          </div>
+          <div style="font-size:12px;color:#2B2B28;line-height:1.6;margin-bottom:12px">Answer all questions in the spaces provided. Unless otherwise stated, all numerical answers must be given exactly or to three significant figures.</div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;color:#12333A;border-top:1px solid #E0DCD3;padding-top:10px">
+            <span>{{paperItemsCountLabel}}</span><span>Total marks: {{paperTotalMarksLabel}}</span>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:16px">
+          <div onClick="{{onExportPaperPdf}}" style="flex:1;border:1px solid #E0DCD3;border-radius:10px;padding:22px;cursor:pointer;text-align:center">
+            <div style="font-size:28px;margin-bottom:10px;color:#12333A">↓</div>
+            <div style="font-weight:700;font-size:14.5px;color:#12333A;margin-bottom:4px">PDF</div>
+            <div style="font-size:12px;color:#6C6E66;line-height:1.4">Styled like a printed IB exam paper</div>
+          </div>
+          <div onClick="{{onExportPaperWord}}" style="flex:1;border:1px solid #E0DCD3;border-radius:10px;padding:22px;cursor:pointer;text-align:center">
+            <div style="font-size:28px;margin-bottom:10px;color:#12333A">↓</div>
+            <div style="font-weight:700;font-size:14.5px;color:#12333A;margin-bottom:4px">Word (.docx)</div>
+            <div style="font-size:12px;color:#6C6E66;line-height:1.4">Fully editable for adapting later</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{toastVisible}}" hint-placeholder-val="{{false}}">
+    <div style="position:fixed;bottom:98px;right:30px;background:#12333A;color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:60;box-shadow:0 8px 24px rgba(0,0,0,.2)">{{toastMessage}}</div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+const TOPICS = [
+  { id:'num-alg', name:'Number & Algebra', subtopics:[
+    { id:'na-sl-1-1', code:'SL 1.1', name:'Arithmetic and geometric sequences and series' },
+    { id:'na-sl-1-2', code:'SL 1.2', name:'Exponents and logarithms' },
+    { id:'na-sl-1-3', code:'SL 1.3', name:'Approximations, rounding and errors' },
+    { id:'na-sl-1-4', code:'SL 1.4', name:'Financial applications: compound interest, depreciation, amortisation' },
+    { id:'na-sl-1-5', code:'SL 1.5', name:'Laws of exponents and logarithms' },
+    { id:'na-sl-1-6', code:'SL 1.6', name:'Simple deductive proof' },
+    { id:'na-ahl-1-7', code:'AHL 1.7', name:'Sum of infinite convergent geometric sequences' },
+    { id:'na-ahl-1-8', code:'AHL 1.8', name:'Complex numbers: Cartesian form' },
+    { id:'na-ahl-1-9', code:'AHL 1.9', name:'Complex numbers: modulus-argument and Euler form' },
+    { id:'na-ahl-1-10', code:'AHL 1.10', name:'Complex conjugate roots; De Moivre\u2019s theorem' },
+    { id:'na-ahl-1-11', code:'AHL 1.11', name:'Proof by mathematical induction and contradiction' },
+    { id:'na-ahl-1-12', code:'AHL 1.12', name:'Systems of linear equations' }
+  ]},
+  { id:'functions', name:'Functions', subtopics:[
+    { id:'fn-sl-2-1', code:'SL 2.1', name:'Equations of straight lines' },
+    { id:'fn-sl-2-2', code:'SL 2.2', name:'Concept of a function; domain and range' },
+    { id:'fn-sl-2-3', code:'SL 2.3', name:'Graphing functions and key features' },
+    { id:'fn-sl-2-4', code:'SL 2.4', name:'Determining features of graphs using technology' },
+    { id:'fn-sl-2-5', code:'SL 2.5', name:'Modelling with functions' },
+    { id:'fn-sl-2-6', code:'SL 2.6', name:'Solving equations graphically' },
+    { id:'fn-sl-2-7', code:'SL 2.7', name:'Composite and inverse functions' },
+    { id:'fn-sl-2-8', code:'SL 2.8', name:'Transformations of graphs' },
+    { id:'fn-ahl-2-9', code:'AHL 2.9', name:'Rational functions' },
+    { id:'fn-ahl-2-10', code:'AHL 2.10', name:'Odd, even and self-inverse functions' },
+    { id:'fn-ahl-2-11', code:'AHL 2.11', name:'Polynomial functions; factor and remainder theorems' },
+    { id:'fn-ahl-2-12', code:'AHL 2.12', name:'Sum and product of roots of polynomials' }
+  ]},
+  { id:'geo-trig', name:'Geometry & Trigonometry', subtopics:[
+    { id:'gt-sl-3-1', code:'SL 3.1', name:'3D geometry: distance, midpoints, volume, surface area' },
+    { id:'gt-sl-3-2', code:'SL 3.2', name:'Angles of elevation and depression' },
+    { id:'gt-sl-3-3', code:'SL 3.3', name:'Sine and cosine rules; area of a triangle' },
+    { id:'gt-sl-3-4', code:'SL 3.4', name:'Trigonometric identities' },
+    { id:'gt-sl-3-5', code:'SL 3.5', name:'The unit circle and exact values' },
+    { id:'gt-sl-3-6', code:'SL 3.6', name:'Graphs of trigonometric functions' },
+    { id:'gt-sl-3-7', code:'SL 3.7', name:'Solving trigonometric equations' },
+    { id:'gt-ahl-3-8', code:'AHL 3.8', name:'Compound and double angle identities' },
+    { id:'gt-ahl-3-9', code:'AHL 3.9', name:'Vectors: magnitude, direction and representation' },
+    { id:'gt-ahl-3-10', code:'AHL 3.10', name:'Scalar and vector (cross) product' },
+    { id:'gt-ahl-3-11', code:'AHL 3.11', name:'Vector equations of planes' },
+    { id:'gt-ahl-3-12', code:'AHL 3.12', name:'Vector equations of lines in three dimensions' },
+    { id:'gt-ahl-3-13', code:'AHL 3.13', name:'Intersections of lines and planes' }
+  ]},
+  { id:'stats-prob', name:'Statistics & Probability', subtopics:[
+    { id:'sp-sl-4-1', code:'SL 4.1', name:'Sampling techniques and bias' },
+    { id:'sp-sl-4-2', code:'SL 4.2', name:'Presentation of data' },
+    { id:'sp-sl-4-3', code:'SL 4.3', name:'Measures of central tendency and dispersion' },
+    { id:'sp-sl-4-4', code:'SL 4.4', name:'Correlation and linear regression' },
+    { id:'sp-sl-4-5', code:'SL 4.5', name:'Discrete random variables' },
+    { id:'sp-sl-4-6', code:'SL 4.6', name:'Binomial distribution' },
+    { id:'sp-sl-4-7', code:'SL 4.7', name:'The normal distribution' },
+    { id:'sp-sl-4-8', code:'SL 4.8', name:'Conditional probability and independence' },
+    { id:'sp-ahl-4-9', code:'AHL 4.9', name:'Variance of a discrete random variable' },
+    { id:'sp-ahl-4-10', code:'AHL 4.10', name:'Continuous random variables' },
+    { id:'sp-ahl-4-11', code:'AHL 4.11', name:'Poisson distribution' },
+    { id:'sp-ahl-4-13', code:'AHL 4.12', name:'Bayesian probability' }
+  ]},
+  { id:'calculus', name:'Calculus', subtopics:[
+    { id:'ca-sl-5-1', code:'SL 5.1', name:'Limits and rates of change' },
+    { id:'ca-sl-5-2', code:'SL 5.2', name:'Differentiation from first principles' },
+    { id:'ca-sl-5-3', code:'SL 5.3', name:'Derivative rules: chain, product, quotient' },
+    { id:'ca-sl-5-4', code:'SL 5.4', name:'Tangents and normals' },
+    { id:'ca-sl-5-5', code:'SL 5.5', name:'Increasing and decreasing functions' },
+    { id:'ca-sl-5-6', code:'SL 5.6', name:'Optimisation' },
+    { id:'ca-sl-5-7', code:'SL 5.7', name:'Indefinite integration' },
+    { id:'ca-sl-5-8', code:'SL 5.8', name:'Definite integrals and area under a curve' },
+    { id:'ca-ahl-5-9', code:'AHL 5.9', name:'Kinematics using calculus' },
+    { id:'ca-ahl-5-10', code:'AHL 5.10', name:'Implicit differentiation and related rates' },
+    { id:'ca-ahl-5-11', code:'AHL 5.11', name:'Integration by substitution and by parts' },
+    { id:'ca-ahl-5-12', code:'AHL 5.12', name:'Volumes of revolution' },
+    { id:'ca-ahl-5-13', code:'AHL 5.13', name:'Maclaurin series' },
+    { id:'ca-ahl-5-14', code:'AHL 5.14', name:'Differential equations' }
+  ]}
+];
+
+const SAMPLE_QUESTIONS = {
+  'ca-ahl-5-9': {
+    totalMarks: 9,
+    stem: [
+      { t:'The velocity, in ' }, { m:'\\text{m s}^{-1}' }, { t:', of a particle moving along a straight line is given by' },
+      { m:'v(t) = 3t^{2} - 12t + 9', display:true },
+      { t:'for ' }, { m:'t \\ge 0' }, { t:', where ' }, { m:'t' }, { t:' is the time in seconds.' }
+    ],
+    parts: [
+      { label:'a', marks:1, commandTerm:'Find', examinerNote:'Almost all candidates score this mark; occasional sign errors arise from substituting into the wrong term.', segments:[{ t:'Find the initial velocity of the particle.' }] },
+      { label:'b', marks:3, commandTerm:'Find', examinerNote:'Most candidates factorise correctly but some stop after finding one root — both values of t are required for full marks.', segments:[{ t:'Find the values of ' }, { m:'t' }, { t:' for which the particle is momentarily at rest.' }] },
+      { label:'c', marks:5, commandTerm:'Find', examinerNote:'The most commonly lost marks on this paper. Many candidates integrate v(t) directly over [0,4], giving net displacement rather than total distance — the sign change at each root must be treated separately.', segments:[{ t:'Find the total distance travelled by the particle during the first 4 seconds.' }] }
+    ],
+    markScheme: [
+      { lines:[ { code:'A1', segments:[{ m:'v(0) = 9' }] } ] },
+      { lines:[
+        { code:'M1', segments:[{ t:'Setting ' }, { m:'v(t)=0' }, { t:': ' }, { m:'3t^{2}-12t+9=0' }] },
+        { code:'M1', segments:[{ t:'Factorising: ' }, { m:'(t-1)(t-3)=0' }] },
+        { code:'A1', segments:[{ m:'t=1,\\ t=3' }] }
+      ]},
+      { lines:[
+        { code:'M1', segments:[{ t:'Recognising the need to consider ' }, { m:'|v(t)|' }, { t:' by splitting at ' }, { m:'t=1' }, { t:' and ' }, { m:'t=3' }] },
+        { code:'A1', segments:[{ t:'Displacement function ' }, { m:'s(t)=t^{3}-6t^{2}+9t' }] },
+        { code:'A1', segments:[{ t:'Distance on ' }, { m:'[0,1] = 4\\text{ m}' }] },
+        { code:'A1', segments:[{ t:'Distance on ' }, { m:'[1,3] = 4\\text{ m}' }, { t:', distance on ' }, { m:'[3,4] = 4\\text{ m}' }] },
+        { code:'A1', segments:[{ t:'Total distance ' }, { m:'= 12\\text{ m}' }] }
+      ]}
+    ]
+  },
+  'gt-ahl-3-12': {
+    totalMarks: 5,
+    stem: [
+      { t:'Line ' }, { m:'L_1' }, { t:' passes through the point ' }, { m:'A(1,\\,2,\\,-1)' }, { t:' and has direction vector ' },
+      { m:'\\vec{d} = \\begin{pmatrix}2\\\\-1\\\\3\\end{pmatrix}', display:true }
+    ],
+    parts: [
+      { label:'a', marks:2, commandTerm:'Write down', examinerNote:'Full marks are common; keep the position vector and direction vector as clearly separate terms rather than merging them into one expression.', segments:[{ t:'Write down a vector equation for ' }, { m:'L_1' }, { t:'.' }] },
+      { label:'b', marks:3, commandTerm:'Determine', examinerNote:'Strong scripts solve one equation for t then verify it against both remaining equations — verifying against only one loses the final mark.', segments:[{ t:'Determine whether the point ' }, { m:'P(5,\\,0,\\,5)' }, { t:' lies on ' }, { m:'L_1' }, { t:'.' }] }
+    ],
+    markScheme: [
+      { lines:[
+        { code:'A1', segments:[{ m:'\\vec{r} = \\begin{pmatrix}1\\\\2\\\\-1\\end{pmatrix} + t\\begin{pmatrix}2\\\\-1\\\\3\\end{pmatrix}' }] },
+        { code:'A1', segments:[{ t:'for correct position and direction vectors (accept equivalent parametric form)' }] }
+      ]},
+      { lines:[
+        { code:'M1', segments:[{ t:'Setting up equations: ' }, { m:'1+2t=5,\\ \\ 2-t=0,\\ \\ -1+3t=5' }] },
+        { code:'A1', segments:[{ t:'Solving first equation: ' }, { m:'t=2' }] },
+        { code:'R1', segments:[{ t:'Checking ' }, { m:'t=2' }, { t:' is consistent with the remaining two equations, so ' }, { m:'P' }, { t:' lies on ' }, { m:'L_1' }] }
+      ]}
+    ]
+  },
+  'sp-sl-4-7': {
+    totalMarks: 6,
+    stem: [
+      { t:'The height, in cm, of students at a large school is modelled by ' }, { m:'X \\sim N(68,\\,5^{2})', display:true }
+    ],
+    parts: [
+      { label:'a', marks:2, commandTerm:'Find', examinerNote:'GDC use is expected; candidates using printed tables sometimes lose accuracy in the final significant figure.', segments:[{ t:'Find ' }, { m:'P(X>75)' }, { t:'.' }] },
+      { label:'b', marks:2, commandTerm:'Find', examinerNote:'A common error is finding the value satisfying P(X<k)=0.10 instead of 0.90 — check which tail the 90% refers to.', segments:[{ t:'Find the value ' }, { m:'k' }, { t:' such that ' }, { m:'P(X<k)=0.90' }, { t:'.' }] },
+      { label:'c', marks:2, commandTerm:'Find', examinerNote:'The expected number represents a count of people; sensible rounding to the nearest whole number is accepted and often expected.', segments:[{ t:'A random sample of 40 students is taken. Find the expected number of students with height greater than 75 cm.' }] }
+    ],
+    markScheme: [
+      { lines:[
+        { code:'M1', segments:[{ t:'Standardising, or using GDC: ' }, { m:'z=\\dfrac{75-68}{5}=1.4' }] },
+        { code:'A1', segments:[{ m:'P(X>75) = 0.0808' }] }
+      ]},
+      { lines:[
+        { code:'M1', segments:[{ t:'Using inverse normal with ' }, { m:'p=0.90' }] },
+        { code:'A1', segments:[{ m:'k = 74.4' }] }
+      ]},
+      { lines:[
+        { code:'M1', segments:[{ t:'Recognising ' }, { m:'np' }, { t:' with ' }, { m:'n=40,\\ p=0.0808' }] },
+        { code:'A1', segments:[{ t:'Expected number ' }, { m:'\\approx 3.23' }] }
+      ]}
+    ]
+  }
+};
+
+function subtopicMajor(id) {
+  const t = TOPICS.find(t => t.subtopics.some(s => s.id === id));
+  return t ? t.id : null;
+}
+function subtopicInfo(id) {
+  for (const t of TOPICS) { const s = t.subtopics.find(s => s.id === id); if (s) return { topic:t, sub:s }; }
+  return null;
+}
+
+const NAV_LABELS = ['IA','EE','TOK','CAS','RP','PP'];
+const PAPER_STYLE_META = { A:'Paper 1', B:'Paper 2', P3:'Paper 3' };
+const DIFFICULTY_META = {
+  straightforward: 'Starts straightforward',
+  moderate: 'Moderate throughout',
+  demanding: 'Builds to a demanding final part'
+};
+
+class Component extends DCLogic {
+  state = {
+    course: 'AA', level: 'HL', paperStyle: 'B', difficulty: 'moderate',
+    expandedTopics: {}, selectedSubtopics: {},
+    view: 'generate', generatedQuestion: null, markSchemeOpen: false,
+    paperItems: [], trayOpen: false, exportModalOpen: false,
+    toastMessage: '', toastVisible: false,
+    viewOptionsOpen: false,
+    displayOptions: { question:true, referenceCode:true, answerSpace:false, markScheme:true, examinerInsight:false, warnings:true }
+  };
+
+  renderMath(latex, display) {
+    if (!window.katex) return latex;
+    try { return window.katex.renderToString(latex, { throwOnError:false, displayMode: !!display }); }
+    catch (e) { return latex; }
+  }
+
+  buildSegments(segs) {
+    return segs.map((s, i) => {
+      if (s.m) {
+        const html = this.renderMath(s.m, !!s.display);
+        return React.createElement(s.display ? 'div' : 'span', { key:i, style: s.display ? { margin:'12px 0' } : { margin:'0 3px' }, dangerouslySetInnerHTML: { __html: html } });
+      }
+      return s.t;
+    });
+  }
+
+  buildQuestionBody(q) {
+    const stem = React.createElement('div', { key:'stem', style:{ marginBottom:'22px' } }, this.buildSegments(q.stem));
+    const parts = q.parts.map((p, i) => React.createElement('div', { key:'p'+i, style:{ display:'flex', justifyContent:'space-between', gap:'16px', marginBottom:'16px', alignItems:'flex-start' } },
+      React.createElement('div', { style:{ flex:1 } },
+        React.createElement('span', { style:{ fontWeight:700, marginRight:'8px' } }, '(' + p.label + ')'),
+        ...this.buildSegments(p.segments)
+      ),
+      React.createElement('div', { style:{ fontWeight:700, fontSize:'14px', color:'#6C6E66', whiteSpace:'nowrap' } }, '[' + p.marks + ']')
+    ));
+    return React.createElement('div', {}, stem, ...parts);
+  }
+
+  buildAnswerSpaceBody(q) {
+    const blocks = q.parts.map((p, idx) => {
+      const lineCount = Math.max(2, Math.min(6, p.marks + 1));
+      const lines = [];
+      for (let i = 0; i < lineCount; i++) lines.push(React.createElement('div', { key:i, style:{ borderBottom:'1px solid #DED9CF', height:'26px' } }));
+      return React.createElement('div', { key:idx, style:{ marginBottom:'14px' } },
+        React.createElement('div', { style:{ fontWeight:700, fontSize:'12.5px', color:'#6C6E66', marginBottom:'4px' } }, '(' + p.label + ')'),
+        ...lines
+      );
+    });
+    return React.createElement('div', { style:{ border:'1px solid #E0DCD3', borderRadius:'8px', padding:'16px 18px', background:'#FCFBF9' } }, ...blocks);
+  }
+
+  buildMarkSchemeBody(q) {
+    const blocks = q.parts.map((p, idx) => {
+      const ms = q.markScheme[idx];
+      const lines = ms.lines.map((l, i) => React.createElement('div', { key:i, style:{ display:'flex', gap:'10px', marginBottom:'7px', alignItems:'baseline' } },
+        React.createElement('span', { style:{ fontFamily:"'Libre Franklin',sans-serif", fontWeight:700, fontSize:'12px', color:'#2F5C4C', background:'#EDF3F0', padding:'2px 7px', borderRadius:'4px', flexShrink:0 } }, l.code),
+        React.createElement('span', { style:{ fontSize:'14.5px' } }, ...this.buildSegments(l.segments))
+      ));
+      return React.createElement('div', { key:idx, style:{ marginBottom:'18px', paddingLeft:'14px', borderLeft:'3px solid #5C8F7E' } },
+        React.createElement('div', { style:{ fontWeight:700, fontSize:'13px', color:'#12333A', marginBottom:'8px' } }, '(' + p.label + ')'),
+        ...lines
+      );
+    });
+    return React.createElement('div', {}, ...blocks);
+  }
+
+  buildExaminerInsightBody(q) {
+    const blocks = q.parts.map((p, idx) => React.createElement('div', { key:idx, style:{ marginBottom:'14px', paddingLeft:'14px', borderLeft:'3px solid #B08B5A' } },
+      React.createElement('div', { style:{ fontWeight:700, fontSize:'13px', color:'#12333A', marginBottom:'4px' } }, '(' + p.label + ')'),
+      React.createElement('div', { style:{ fontSize:'13.5px', lineHeight:'1.6', color:'#5A4A36' } }, p.examinerNote || '')
+    ));
+    return React.createElement('div', {}, ...blocks);
+  }
+
+  toggleViewOptions = () => this.setState(s => ({ viewOptionsOpen: !s.viewOptionsOpen }));
+  toggleDisplayOption = (key) => this.setState(s => ({ displayOptions: { ...s.displayOptions, [key]: !s.displayOptions[key] } }));
+
+  selectCourseAA = () => this.setState({ course:'AA' });
+  selectCourseAI = () => this.setState({ course:'AI' });
+  selectLevelSL = () => this.setState(s => ({ level:'SL', paperStyle: s.paperStyle==='P3' ? 'B' : s.paperStyle }));
+  selectLevelHL = () => this.setState({ level:'HL' });
+
+  toggleTopicExpand = (id) => this.setState(s => ({ expandedTopics: { ...s.expandedTopics, [id]: !s.expandedTopics[id] } }));
+  toggleSubtopic = (id) => this.setState(s => ({ selectedSubtopics: { ...s.selectedSubtopics, [id]: !s.selectedSubtopics[id] } }));
+
+  onGenerate = () => {
+    const ids = Object.keys(this.state.selectedSubtopics).filter(id => this.state.selectedSubtopics[id]);
+    if (!ids.length) return;
+    let key = ids.find(id => SAMPLE_QUESTIONS[id]);
+    if (!key) key = 'ca-ahl-5-9';
+    const sample = SAMPLE_QUESTIONS[key];
+    const info = subtopicInfo(key);
+    const gq = {
+      ...sample, subtopicId: key,
+      subtopicCode: info.sub.code, subtopicName: info.sub.name,
+      course: this.state.course, level: this.state.level,
+      paperStyle: this.state.paperStyle, difficulty: this.state.difficulty,
+      genId: 'q-' + Date.now()
+    };
+    this.setState({ generatedQuestion: gq, view:'result', markSchemeOpen:false });
+  };
+
+  backToGenerate = () => this.setState({ view:'generate' });
+  toggleMarkScheme = () => this.setState(s => ({ markSchemeOpen: !s.markSchemeOpen }));
+
+  showToast(msg) {
+    this.setState({ toastMessage: msg, toastVisible: true });
+    clearTimeout(this._toastTimer);
+    this._toastTimer = setTimeout(() => this.setState({ toastVisible:false }), 2200);
+  }
+
+  onAddToPaper = () => {
+    const q = this.state.generatedQuestion;
+    if (!q) return;
+    if (this.state.paperItems.some(i => i.sourceId === q.genId)) { this.showToast('Already in the paper'); return; }
+    const item = { id:'p-'+Date.now(), sourceId:q.genId, topicCode:q.subtopicCode, topicName:q.subtopicName, marks:q.totalMarks, majorTopic: subtopicMajor(q.subtopicId) };
+    this.setState(s => ({ paperItems:[...s.paperItems, item], trayOpen:true }));
+    this.showToast('Added to paper builder');
+  };
+  removeFromPaper = (id) => this.setState(s => ({ paperItems: s.paperItems.filter(i => i.id !== id) }));
+
+  onExportPdf = () => this.showToast('Exported as PDF');
+  onExportWord = () => this.showToast('Exported as Word (.docx)');
+  onExportPaperPdf = () => { this.showToast('Paper exported as PDF'); this.setState({ exportModalOpen:false }); };
+  onExportPaperWord = () => { this.showToast('Paper exported as Word (.docx)'); this.setState({ exportModalOpen:false }); };
+
+  toggleTray = () => this.setState(s => ({ trayOpen: !s.trayOpen }));
+  openExportModal = () => this.setState({ exportModalOpen:true });
+  closeExportModal = () => this.setState({ exportModalOpen:false });
+  stopClick = (e) => e.stopPropagation();
+
+  renderVals() {
+    const s = this.state;
+
+    const navItemsView = NAV_LABELS.map(label => ({
+      label,
+      rowStyle: 'display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:6px;color:rgba(247,245,241,.7);font-size:14px;font-weight:600;cursor:pointer;margin-bottom:2px'
+    })).concat([{
+      label:'Question Bank',
+      rowStyle: 'display:flex;align-items:center;gap:12px;padding:9px 12px;border-radius:6px;color:#F7F5F1;font-size:14px;font-weight:700;cursor:pointer;margin-bottom:2px;background:rgba(255,255,255,.1)'
+    }]);
+
+    const topicsView = TOPICS.map(topic => {
+      const expanded = !!s.expandedTopics[topic.id];
+      const selectedCount = topic.subtopics.filter(sub => s.selectedSubtopics[sub.id]).length;
+      return {
+        id: topic.id, name: topic.name, expanded,
+        chevronStyle: 'display:inline-block;transition:transform .15s;color:#5C8F7E;transform:rotate(' + (expanded ? 90 : 0) + 'deg)',
+        toggleExpand: () => this.toggleTopicExpand(topic.id),
+        hasSelection: selectedCount > 0,
+        selectedLabel: selectedCount + ' selected',
+        subtopics: topic.subtopics.map(sub => ({
+          id: sub.id, code: sub.code, name: sub.name,
+          checked: !!s.selectedSubtopics[sub.id],
+          toggle: () => this.toggleSubtopic(sub.id)
+        }))
+      };
+    });
+
+    const pillBase = 'padding:9px 22px;border:none;border-radius:6px;font-size:14px;font-weight:600;font-family:inherit;cursor:pointer';
+    const activePill = pillBase + ';background:#12333A;color:#F7F5F1';
+    const inactivePill = pillBase + ';background:transparent;color:#6C6E66';
+
+    const paperStyleDefs = [
+      { id:'A', desc:'Short-response, structured parts' },
+      { id:'B', desc:'Extended-response, multi-part' },
+      { id:'P3', desc:'Investigative problem-solving — HL only' }
+    ];
+    const paperStyleOptions = paperStyleDefs.map(o => {
+      const disabled = o.id === 'P3' && s.level === 'SL';
+      const selected = s.paperStyle === o.id;
+      let cardStyle = 'border-radius:8px;padding:16px 18px;flex:1;min-width:180px;box-sizing:border-box;';
+      cardStyle += disabled ? 'border:1px solid #E0DCD3;background:#F2F0EA;opacity:.5;cursor:not-allowed'
+        : selected ? 'border:2px solid #12333A;background:#EDF3F0;cursor:pointer'
+        : 'border:1px solid #E0DCD3;background:#fff;cursor:pointer';
+      return { id:o.id, label: PAPER_STYLE_META[o.id], desc:o.desc, cardStyle, select: () => { if (!disabled) this.setState({ paperStyle:o.id }); } };
+    });
+
+    const difficultyOptions = Object.keys(DIFFICULTY_META).map(id => {
+      const selected = s.difficulty === id;
+      const cardStyle = 'border-radius:8px;padding:14px 18px;flex:1;min-width:180px;box-sizing:border-box;font-size:13.5px;font-weight:600;text-align:center;cursor:pointer;' +
+        (selected ? 'border:2px solid #12333A;background:#EDF3F0;color:#12333A' : 'border:1px solid #E0DCD3;background:#fff;color:#6C6E66');
+      return { id, label: DIFFICULTY_META[id], cardStyle, select: () => this.setState({ difficulty:id }) };
+    });
+
+    const calculatorNote = s.paperStyle === 'P3' ? 'Calculator required — matches Paper 3 conventions, HL only.'
+      : s.paperStyle === 'A' ? 'No calculator — matches Paper 1 conventions.'
+      : 'Calculator permitted — matches Paper 2 conventions.';
+
+    const canGenerate = Object.values(s.selectedSubtopics).some(Boolean);
+    const generateButtonStyle = 'padding:14px 30px;border:none;border-radius:6px;font-size:15px;font-weight:700;font-family:inherit;letter-spacing:.01em;' +
+      (canGenerate ? 'background:#12333A;color:#F7F5F1;cursor:pointer' : 'background:#DCD8CE;color:#9A968A;cursor:not-allowed');
+
+    const gq = s.generatedQuestion;
+    const isResultView = s.view === 'result' && !!gq;
+
+    let questionBody = null, answerSpaceBody = null, markSchemeBody = null, examinerInsightBody = null;
+    let resultCourseLevelLabel = '', resultTopicLabel = '', resultPaperStyleLabel = '', resultMarksLabel = '', resultDifficultyLabel = '', referenceCode = '', commandTermsLabel = '';
+    if (isResultView) {
+      questionBody = this.buildQuestionBody(gq);
+      answerSpaceBody = this.buildAnswerSpaceBody(gq);
+      markSchemeBody = this.buildMarkSchemeBody(gq);
+      examinerInsightBody = this.buildExaminerInsightBody(gq);
+      resultCourseLevelLabel = 'Math ' + gq.course + ' ' + gq.level;
+      resultTopicLabel = gq.subtopicCode + ' — ' + gq.subtopicName;
+      resultPaperStyleLabel = PAPER_STYLE_META[gq.paperStyle];
+      resultMarksLabel = gq.totalMarks + ' marks';
+      resultDifficultyLabel = DIFFICULTY_META[gq.difficulty];
+      referenceCode = 'QB.' + gq.course + gq.level + '.' + gq.subtopicCode.replace(/\s+/g, '') + '.' + gq.genId.slice(-4);
+      commandTermsLabel = Array.from(new Set(gq.parts.map(p => p.commandTerm).filter(Boolean))).join(' · ');
+    }
+
+    const displayOptionsList = [
+      { id:'question', label:'Question' }, { id:'referenceCode', label:'Reference code' },
+      { id:'answerSpace', label:'Space for student answers' }, { id:'markScheme', label:'Mark scheme' },
+      { id:'examinerInsight', label:'Examiner insight' }, { id:'warnings', label:'Warnings' }
+    ].map(o => ({
+      id:o.id, label:o.label, on: !!s.displayOptions[o.id],
+      toggle: () => this.toggleDisplayOption(o.id),
+      trackStyle: 'width:36px;height:20px;border-radius:10px;position:relative;cursor:pointer;transition:background .15s;background:' + (s.displayOptions[o.id] ? '#12333A' : '#DCD8CE'),
+      knobStyle: 'width:16px;height:16px;border-radius:50%;background:#fff;position:absolute;top:2px;transition:left .15s;left:' + (s.displayOptions[o.id] ? '18px' : '2px')
+    }));
+
+    const alreadyAdded = !!gq && s.paperItems.some(i => i.sourceId === gq.genId);
+    const addButtonLabel = alreadyAdded ? '✓ Added to paper' : '+ Add to paper';
+    const addButtonStyle = 'padding:11px 20px;border:none;border-radius:6px;font-size:13.5px;font-weight:700;font-family:inherit;cursor:pointer;' +
+      (alreadyAdded ? 'background:#EDF3F0;color:#2F5C4C' : 'background:#5C8F7E;color:#fff');
+
+    const paperItems = s.paperItems.map(i => ({ ...i, marksLabel: i.marks + ' marks', remove: () => this.removeFromPaper(i.id) }));
+    const hasPaperItems = paperItems.length > 0;
+    const paperTotalMarks = paperItems.reduce((a, i) => a + i.marks, 0);
+    const distribution = TOPICS.map(t => {
+      const marks = paperItems.filter(i => i.majorTopic === t.id).reduce((a, i) => a + i.marks, 0);
+      const pct = paperTotalMarks ? Math.round(marks / paperTotalMarks * 100) : 0;
+      return { id:t.id, name:t.name, pctLabel: pct + '% · target 20%', barStyle: 'height:6px;border-radius:3px;background:#5C8F7E;width:' + pct + '%' };
+    });
+
+    return {
+      navItemsView, isGenerateView: s.view === 'generate', isResultView,
+      courseAAStyle: s.course === 'AA' ? activePill : inactivePill,
+      courseAIStyle: s.course === 'AI' ? activePill : inactivePill,
+      levelSLStyle: s.level === 'SL' ? activePill : inactivePill,
+      levelHLStyle: s.level === 'HL' ? activePill : inactivePill,
+      selectCourseAA: this.selectCourseAA, selectCourseAI: this.selectCourseAI,
+      selectLevelSL: this.selectLevelSL, selectLevelHL: this.selectLevelHL,
+      topicsView, paperStyleOptions, difficultyOptions, calculatorNote,
+      generateButtonStyle, onGenerate: this.onGenerate,
+      backToGenerate: this.backToGenerate,
+      resultCourseLevelLabel, resultTopicLabel, resultPaperStyleLabel, resultMarksLabel, resultDifficultyLabel,
+      referenceCode, commandTermsLabel,
+      questionBody, answerSpaceBody, markSchemeBody, examinerInsightBody,
+      viewOptionsOpen: s.viewOptionsOpen, toggleViewOptions: this.toggleViewOptions, displayOptionsList,
+      showQuestion: s.displayOptions.question, showReferenceCode: s.displayOptions.referenceCode,
+      showAnswerSpace: s.displayOptions.answerSpace, showMarkScheme: s.displayOptions.markScheme,
+      showExaminerInsight: s.displayOptions.examinerInsight, showWarnings: s.displayOptions.warnings,
+      markSchemeOpen: s.markSchemeOpen, toggleMarkScheme: this.toggleMarkScheme,
+      markSchemeChevronStyle: 'display:inline-block;transition:transform .15s;transform:rotate(' + (s.markSchemeOpen ? 90 : 0) + 'deg)',
+      markSchemeToggleLabel: s.markSchemeOpen ? 'Hide' : 'Show',
+      addButtonLabel, addButtonStyle, onAddToPaper: this.onAddToPaper,
+      onExportPdf: this.onExportPdf, onExportWord: this.onExportWord,
+      trayOpen: s.trayOpen, toggleTray: this.toggleTray,
+      trayBadge: hasPaperItems ? (' · ' + paperItems.length + ' · ' + paperTotalMarks + ' marks') : '',
+      paperItems, hasPaperItems, paperTotalMarksLabel: paperTotalMarks + ' marks', distribution,
+      openExportModal: this.openExportModal, closeExportModal: this.closeExportModal, stopClick: this.stopClick,
+      exportModalOpen: s.exportModalOpen,
+      paperSummaryLabel: paperItems.length + (paperItems.length === 1 ? ' question · ' : ' questions · ') + paperTotalMarks + ' marks total',
+      coverDateLabel: new Date().toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' }),
+      paperItemsCountLabel: paperItems.length + (paperItems.length === 1 ? ' question' : ' questions'),
+      onExportPaperPdf: this.onExportPaperPdf, onExportPaperWord: this.onExportPaperWord,
+      toastVisible: s.toastVisible, toastMessage: s.toastMessage
+    };
+  }
+}
+
+</script>
+</body>
+</html>
