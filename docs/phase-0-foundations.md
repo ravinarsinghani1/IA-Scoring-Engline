@@ -218,3 +218,29 @@ Phase 2, not Phase 0.)*
 - The existing Scoring / Validation behavior still works for an authenticated teacher.
 - All schema changes are additive + nullable; dropping the new objects fully restores the
   pre-Phase-0 database.
+
+> ✅ **DEPLOYMENT BLOCKER (unauthenticated access) — RESOLVED.** Both access gaps that made
+> real data reachable without a valid, provisioned account are now closed:
+>
+> 1. **Server — data routes enforced.** `/api/folders`, `/api/explorations`, `/api/drafts`,
+>    and `/api/validation` now mount behind `requireAuth` + `requireProfile` in `app.js`. An
+>    unauthenticated (`curl`, no token) or authenticated-but-profileless caller gets 401/403;
+>    they no longer reach any data route.
+> 2. **Client — `RequireAuth` profile gate.** `RequireAuth` now renders a blocked
+>    "not linked to a registered school" panel (with Sign out) for an
+>    authenticated-but-profileless user, instead of falling through to `<Workspace/>`.
+>
+> ---
+>
+> 🔖 **TRACKED ITEM — `OWNERSHIP-SCOPING` (OPEN — pre-multi-tenant deploy gate).**
+> *(Search this file for the tag `OWNERSHIP-SCOPING` to find this item.)*
+> The access blocker above is resolved, **but data is NOT yet isolated per teacher.** Any
+> authenticated **and provisioned** user still sees **every** teacher's explorations and
+> folders, because: (a) the list/detail queries do **not** filter by `req.user`, and (b) the
+> nullable `exploration.teacher_id` / `school_id` columns are **not populated on create**.
+> **Hard requirement before Saaryavi is deployed with more than one real teacher or more than
+> one school:** creates MUST stamp `teacher_id` + `school_id` from `req.user`, and list/detail
+> queries MUST filter by the caller's ownership/school. A single-teacher pilot on a trusted
+> account is unaffected by this; a multi-tenant deployment is **blocked** until it lands.
+> This is the remaining half of the §5 step-6 cutover (access gating is done; ownership
+> scoping is not).

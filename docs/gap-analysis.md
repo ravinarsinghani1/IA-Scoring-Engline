@@ -143,6 +143,16 @@ roles, no navigation shell, no ownership model.
 Phases 1–7 are deliberately left at this altitude. They will be expanded one at a time,
 because the concrete shape of later phases is likely to shift once Phase 0 is built.
 
+> 🚫 **PHASE 5 HARD BLOCKER — coordinator access must be gated before it exists.** In the
+> Phase 0 auth, the `role` is **self-selected** at the Role Picker: any user with a
+> registered school-domain email can choose `coordinator`, with **no** invite, approval, or
+> second factor. That is only safe because **no coordinator surface exists yet.** Therefore:
+> **the 2FA/invite/approval gate on coordinator promotion MUST ship in the SAME change that
+> first exposes any whole-school / cross-teacher coordinator surface — never in a later
+> follow-up.** Shipping a coordinator data surface while `role: 'coordinator'` remains freely
+> self-selectable is a **release-blocking privilege-escalation defect**, not a polish item.
+> Do not deploy Phase 5 coordinator views until self-selection is closed.
+
 **On Phase 7's ordering:** Question Bank depends only on **Phase 0** (auth/role) and
 **Phase 1** (app shell to host the sidebar entry) — *not* on the IA-hierarchy /
 file-view / coordinator / student phases. It can therefore be built in parallel with

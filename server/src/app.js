@@ -9,10 +9,12 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 
+import authRouter from './routes/auth.js';
 import explorationsRouter from './routes/explorations.js';
 import draftsRouter from './routes/drafts.js';
 import validationRouter from './routes/validation.js';
 import foldersRouter from './routes/folders.js';
+import { requireAuth, requireProfile } from './middleware/requireAuth.js';
 
 const app = express();
 app.use(cors());
@@ -22,10 +24,18 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok', service: 'ia-scoring-server' });
 });
 
-app.use('/api/folders', foldersRouter);
-app.use('/api/explorations', explorationsRouter);
-app.use('/api/drafts', draftsRouter);
-app.use('/api/validation', validationRouter);
+app.use('/api/auth', authRouter);
+
+// Data routes require a valid Supabase JWT AND a completed app_user profile.
+// (requireProfile 403s an authenticated-but-profileless caller — e.g. one whose
+// email domain failed the bootstrap domain-lock.) This is the §5 step-6 cutover:
+// it closes the previously-open data routes. NOTE: per-teacher ownership SCOPING
+// (only seeing your own explorations) is a separate, still-pending change — this
+// step gates access to provisioned users, it does not yet filter by owner.
+app.use('/api/folders', requireAuth, requireProfile, foldersRouter);
+app.use('/api/explorations', requireAuth, requireProfile, explorationsRouter);
+app.use('/api/drafts', requireAuth, requireProfile, draftsRouter);
+app.use('/api/validation', requireAuth, requireProfile, validationRouter);
 
 // 404 for unknown API routes
 app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }));

@@ -1,10 +1,23 @@
 // Thin API client. All requests go to the Express backend (proxied via Vite in
 // dev). The frontend never talks to the Claude API directly.
 
+// The auth layer registers a getter here so every request carries the current
+// Supabase access token. Kept as an injected function (rather than importing the
+// supabase client here) to avoid a circular dependency and keep api.js dumb.
+let accessTokenGetter = async () => null;
+export function setAccessTokenGetter(fn) {
+  accessTokenGetter = fn;
+}
+
+async function authHeaders(base = {}) {
+  const token = await accessTokenGetter();
+  return token ? { ...base, Authorization: `Bearer ${token}` } : base;
+}
+
 async function request(path, options = {}) {
   const res = await fetch(`/api${path}`, {
-    headers: { 'Content-Type': 'application/json' },
     ...options,
+    headers: await authHeaders({ 'Content-Type': 'application/json', ...(options.headers || {}) }),
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -14,6 +27,12 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  // Auth / profile
+  me: () => request('/auth/me'),
+  bootstrap: () => request('/auth/bootstrap', { method: 'POST' }),
+  setRole: (role, subjects) =>
+    request('/auth/role', { method: 'POST', body: JSON.stringify({ role, subjects }) }),
+
   listFolders: () => request('/folders'),
   createFolder: (name) =>
     request('/folders', { method: 'POST', body: JSON.stringify({ name }) }),
@@ -35,6 +54,7 @@ export const api = {
     const res = await fetch(`/api/explorations/${explorationId}/drafts`, {
       method: 'POST',
       body: form,
+      headers: await authHeaders(), // no Content-Type: browser sets multipart boundary
     });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || `Upload failed (${res.status})`);

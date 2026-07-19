@@ -1,10 +1,142 @@
 @import 'tailwindcss';
 
+/* Saaryavi design tokens (from docs/design-handoff-saaryavi/README.md).
+   Exposed two ways: as Tailwind theme colors (utility classes like
+   `bg-surface`, `text-brand`) and as raw CSS vars for one-off inline use. */
+@theme {
+  --font-serif: 'Source Serif 4', ui-serif, Georgia, serif;
+  --font-sans: 'Libre Franklin', ui-sans-serif, system-ui, sans-serif;
+
+  --color-brand: #12333a;            /* deep teal/navy primary */
+  --color-brand-dark: #0c2226;       /* darker sidebar variant */
+  --color-brand-active: #1b3a3e;     /* active nav-item bg */
+  --color-accent: #5c8f7e;           /* muted teal-green accent */
+  --color-accent-deep: #3f6f60;      /* emphasis text / high-confidence */
+
+  --color-surface: #ffffff;          /* card background */
+  --color-canvas: #f7f5f1;           /* off-white page background */
+
+  --color-ink: #22282a;              /* primary text / near-black */
+  --color-ink-muted: #6c6e66;        /* secondary text */
+  --color-ink-faint: #98988f;        /* tertiary/meta text */
+
+  --color-line: #e3dfd6;             /* default border */
+  --color-line-strong: #d8d3c6;
+  --color-line-faint: #efece3;
+
+  /* Confidence tiers (distinct from strength gradient) */
+  --color-conf-high-fg: #3f6f60;
+  --color-conf-high-bg: #eaf1ee;
+  --color-conf-med-fg: #8a6a2e;
+  --color-conf-med-bg: #f7efdd;
+  --color-conf-low-fg: #8a3f2e;
+  --color-conf-low-bg: #fbeae3;
+
+  /* Strength gradient (per-criterion left bar) */
+  --color-strength-weak: #c97a63;
+  --color-strength-developing: #c9a24b;
+  --color-strength-strong: #5c8f7e;
+  --color-strength-excellent: #3f6f60;
+
+  --color-flag: #b9694f;             /* below-target / lagging accent */
+
+  --radius-btn: 6px;
+  --radius-card: 8px;
+}
+
 :root {
   color-scheme: light;
 }
 
 body {
   margin: 0;
-  font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-sans);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/* Shared auth-screen primitives (used by SignIn / SignUp / RolePicker). */
+@layer components {
+  .section-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    text-transform: uppercase;
+    color: var(--color-ink-muted);
+  }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-btn);
+    background: var(--color-brand);
+    padding: 0.6rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: #fff;
+    transition: background 0.15s;
+  }
+  .btn-primary:hover { background: var(--color-brand-active); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  .btn-google {
+    display: inline-flex;
+    width: 100%;
+    align-items: center;
+    justify-content: center;
+    gap: 0.6rem;
+    border-radius: var(--radius-btn);
+    border: 1px solid var(--color-line-strong);
+    background: #fff;
+    padding: 0.6rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--color-ink);
+    transition: background 0.15s;
+  }
+  .btn-google:hover { background: var(--color-line-faint); }
+
+  .auth-field { display: block; }
+  .auth-field > span {
+    display: block;
+    margin-bottom: 0.3rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--color-ink-muted);
+  }
+  .auth-field > input {
+    width: 100%;
+    border-radius: var(--radius-btn);
+    border: 1px solid var(--color-line-strong);
+    background: #fff;
+    padding: 0.55rem 0.7rem;
+    font-size: 0.875rem;
+    color: var(--color-ink);
+  }
+  .auth-field > input:focus {
+    outline: 2px solid var(--color-accent);
+    outline-offset: 0;
+    border-color: transparent;
+  }
+
+  .auth-link { color: var(--color-accent-deep); font-weight: 500; }
+  .auth-link:hover { text-decoration: underline; }
+
+  .auth-error {
+    margin-bottom: 0.75rem;
+    border-radius: var(--radius-btn);
+    background: var(--color-conf-low-bg);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-conf-low-fg);
+  }
+  .auth-notice {
+    border-radius: var(--radius-btn);
+    background: var(--color-conf-med-bg);
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    color: var(--color-conf-med-fg);
+  }
 }
