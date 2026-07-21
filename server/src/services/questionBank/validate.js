@@ -325,10 +325,25 @@ export function validateQuestion(question, options = {}) {
   const allText = parts
     .map((p) => [p.prompt ?? '', ...allMarkSchemeLines(p).map((l) => l.text ?? '')].join(' '))
     .join(' ');
-  if (!ACCURACY_RE.test(allText)) {
+
+  // Only meaningful when a non-exact answer is actually expected. A question
+  // whose answers are all exact (integers, fractions, surds) should NOT be
+  // asked to state "3 s.f." — demanding it there is wrong, and previously
+  // produced a false positive on an entirely exact discriminant question.
+  //
+  // Heuristic, and openly imperfect: a decimal appearing in the MARK SCHEME is
+  // taken as evidence that rounding is involved. Given data quoted as a decimal
+  // inside the working can still trip it, so this remains a warning for human
+  // judgement rather than anything stronger.
+  const schemeText = parts
+    .flatMap((p) => allMarkSchemeLines(p).map((l) => l.text ?? ''))
+    .join(' ');
+  const roundingInvolved = /\d+\.\d+/.test(schemeText);
+
+  if (roundingInvolved && !ACCURACY_RE.test(allText)) {
     report.warn(
       'accuracy-convention',
-      'No numeric accuracy convention (exact / significant figures / decimal places) is stated or clearly implied.'
+      'A decimal answer appears in the mark scheme but no numeric accuracy convention (exact / significant figures / decimal places) is stated.'
     );
   }
 
@@ -418,6 +433,39 @@ function validateMarkScheme(part, report, where) {
 }
 
 /**
+ * Which method-locking term does the PROMPT TEXT actually use?
+ * "Hence or otherwise" must be tested before "Hence", since it contains it.
+ */
+function methodLockTermInPrompt(prompt) {
+  const text = String(prompt ?? '');
+  if (/\bhence\s+or\s+otherwise\b/i.test(text)) return 'Hence or otherwise';
+  if (/\bhence\b/i.test(text)) return 'Hence';
+  return null;
+}
+
+/**
+ * Flag a mismatch between the DECLARED commandTerm and the method-locking
+ * language actually present in the prompt.
+ *
+ * §5.1's Hence rule is method-locked, and every downstream heuristic keys off
+ * the declared term. So a part whose prompt reads "Hence find …" but which
+ * declares "Find" silently drops the method-lock: the constraint looks applied
+ * but never fires. The drift is itself the defect, so it is reported directly.
+ */
+function checkCommandTermDrift(part, declared, report, where) {
+  const inPrompt = methodLockTermInPrompt(part.prompt);
+  if (!inPrompt) return;
+  if (declared.trim().toLowerCase() === inPrompt.toLowerCase()) return;
+
+  report.warn(
+    'command-term-drift',
+    `${where}: the prompt uses "${inPrompt}" (method-locking, §5.1) but commandTerm is declared as "${declared}". ` +
+    `The declared term drives every command-term check, so the method-lock would not be applied.`,
+    { declared, inPrompt }
+  );
+}
+
+/**
  * §10 item 4. We hold definitions for only part of the command-term glossary,
  * so: known terms get their few mechanically checkable expectations applied as
  * WARNINGS; unknown terms are flagged for review and never fail validation.
@@ -428,6 +476,11 @@ function validateCommandTerm(part, ctx, report, where) {
     report.warn('command-term', `${where}: no command term recorded.`);
     return;
   }
+
+  // Drift check runs FIRST and regardless of whether the declared term is one
+  // we hold a definition for — see checkCommandTermDrift.
+  checkCommandTermDrift(part, raw, report, where);
+
   if (!isKnownTerm(raw)) {
     report.warn(
       'command-term',
@@ -439,10 +492,18 @@ function validateCommandTerm(part, ctx, report, where) {
 
   const term = findCommandTerm(raw);
   const expects = term.expects ?? {};
-  const annotations = allMarkSchemeLines(part).map((l) => l.annotation ?? '').join(' ');
+  const lines = allMarkSchemeLines(part);
+  const annotations = lines.map((l) => l.annotation ?? '').join(' ');
+  const schemeText = lines.map((l) => l.text ?? '').join(' ');
   const hasAlternatives = Array.isArray(part.alternativeMethods) && part.alternativeMethods.length > 1;
 
-  if (expects.requiresAG && !/\bAG\b/.test(annotations)) {
+  // AG may appear EITHER as a standalone annotation OR — as is standard in real
+  // IB mark schemes — appended inline to the answer line, e.g. "… = k² − 12k (AG)".
+  // Checking only the annotation field produced false positives on authentic
+  // mark schemes; the inline form is the convention, not a deviation.
+  const hasAG = /\bAG\b/.test(annotations) || /\(\s*AG\s*\)/i.test(schemeText);
+
+  if (expects.requiresAG && !hasAG) {
     report.warn(
       'command-term',
       `${where}: "${term.term}" gives the result, so the mark scheme would normally carry AG. Heuristic — review.`

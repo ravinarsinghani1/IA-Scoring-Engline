@@ -7,7 +7,7 @@ import assert from 'node:assert/strict';
 
 import {
   generateQuestion, buildQuestionSchema, buildInstructions, buildCorrection,
-  MAX_GENERATION_ATTEMPTS, QUESTION_BANK_MODEL,
+  MAX_GENERATION_ATTEMPTS, QUESTION_BANK_MODEL, MAX_OUTPUT_TOKENS,
 } from '../../src/services/questionBank/generate.js';
 
 /** The model-authored half of a valid AA SL P2 question (5 marks). */
@@ -43,10 +43,14 @@ function stubClient(payloads) {
   return {
     calls,
     messages: {
-      create: async (args) => {
+      stream: (args) => {
         calls.push(args);
         const payload = payloads[Math.min(calls.length - 1, payloads.length - 1)];
-        return { content: [{ type: 'text', text: JSON.stringify(payload) }] };
+        return {
+          finalMessage: async () => ({
+            content: [{ type: 'text', text: JSON.stringify(payload) }],
+          }),
+        };
       },
     },
   };
@@ -172,6 +176,42 @@ describe('generate — retry contract (2 attempts total)', () => {
     assert.match(correction, /totalMarks is 99/);     // the actual failure detail
   });
 
+  it('logs WHICH checks failed when a retry fires (otherwise the retry is invisible)', async () => {
+    const broken = { ...modelOutput(), totalMarks: 99 };
+    const client = stubClient([broken, modelOutput()]);
+
+    const original = console.warn;
+    const logged = [];
+    console.warn = (...args) => logged.push(args);
+    try {
+      await generateQuestion(baseRequest(), { client });
+    } finally {
+      console.warn = original;
+    }
+
+    assert.equal(logged.length, 1, 'expected exactly one retry log');
+    const [label, detail] = logged[0];
+    assert.match(label, /validation failed, retrying/);
+    assert.equal(detail.attempt, 1);
+    assert.ok(detail.checks.includes('mark-format'), `checks were ${detail.checks}`);
+    assert.equal(detail.course, 'AA');
+    assert.equal(detail.paper, 'P2');
+    assert.ok(detail.messages.some((m) => /totalMarks is 99/.test(m)));
+  });
+
+  it('does NOT log when the first attempt passes', async () => {
+    const client = stubClient([modelOutput()]);
+    const original = console.warn;
+    const logged = [];
+    console.warn = (...args) => logged.push(args);
+    try {
+      await generateQuestion(baseRequest(), { client });
+    } finally {
+      console.warn = original;
+    }
+    assert.equal(logged.length, 0);
+  });
+
   it('throws 502 when BOTH attempts fail — never returns unvalidated content', async () => {
     const broken = { ...modelOutput(), totalMarks: 99 };
     const client = stubClient([broken, broken]);
@@ -227,14 +267,152 @@ describe('generate — the model call is wired correctly', () => {
   });
 });
 
+describe('generate — upstream API failures are not the caller\'s fault', () => {
+  /** A client whose model call rejects with an SDK-shaped error. */
+  const failingClient = (status, message) => {
+    const calls = [];
+    return {
+      calls,
+      messages: {
+        stream: () => {
+          calls.push(1);
+          return {
+            finalMessage: async () => {
+              const e = new Error(message);
+              e.status = status;
+              e.request_id = 'req_test';
+              throw e;
+            },
+          };
+        },
+      },
+    };
+  };
+
+  it('a billing rejection (upstream 400) becomes 502, NOT a 400 blaming the caller', async () => {
+    const client = failingClient(400, 'Your credit balance is too low to access the Anthropic API. Please go to Plans & Billing to upgrade or purchase credits.');
+    await assert.rejects(
+      () => generateQuestion(baseRequest(), { client }),
+      (e) => e.status === 502
+    );
+  });
+
+  it('vendor billing detail never reaches the client message', async () => {
+    const client = failingClient(400, 'Your credit balance is too low. Please go to Plans & Billing to upgrade or purchase credits.');
+    await generateQuestion(baseRequest(), { client }).then(
+      () => assert.fail('should have thrown'),
+      (e) => {
+        assert.doesNotMatch(e.message, /Plans & Billing/i);
+        assert.doesNotMatch(e.message, /credit balance/i);
+        assert.doesNotMatch(e.message, /Anthropic/i);
+        assert.match(e.message, /unavailable/i);
+      }
+    );
+  });
+
+  it('auth failure (401) also becomes 502 with a safe message', async () => {
+    const client = failingClient(401, 'invalid x-api-key');
+    await assert.rejects(
+      () => generateQuestion(baseRequest(), { client }),
+      (e) => e.status === 502 && !/x-api-key/i.test(e.message)
+    );
+  });
+
+  for (const [status, label] of [[429, 'rate limit'], [529, 'overloaded'], [500, 'server error']]) {
+    it(`transient upstream ${status} (${label}) becomes 503 with retry-later wording`, async () => {
+      const client = failingClient(status, 'upstream boom');
+      await assert.rejects(
+        () => generateQuestion(baseRequest(), { client }),
+        (e) => e.status === 503 && /try again shortly/i.test(e.message)
+      );
+    });
+  }
+
+  it('an upstream failure does NOT consume the validation retry budget', async () => {
+    const client = failingClient(429, 'rate limited');
+    await assert.rejects(() => generateQuestion(baseRequest(), { client }));
+    assert.equal(client.calls.length, 1, 'retried a request that failed upstream');
+  });
+
+  it('the original cause is retained for server-side logs', async () => {
+    const client = failingClient(400, 'billing detail');
+    await generateQuestion(baseRequest(), { client }).then(
+      () => assert.fail('should have thrown'),
+      (e) => {
+        assert.equal(e.cause?.status, 400);
+        assert.match(e.cause?.message, /billing detail/);
+      }
+    );
+  });
+});
+
+describe('generate — output-budget truncation (found by live smoke test)', () => {
+  // A real 15-mark Section B request returned ONLY a thinking block with
+  // stop_reason=max_tokens: the thinking budget consumed the whole allowance
+  // before any answer was written. That is a budget failure, not a format one.
+  const truncatedClient = () => {
+    const calls = [];
+    return {
+      calls,
+      messages: {
+        stream: () => {
+          calls.push(1);
+          return {
+            finalMessage: async () => ({
+              stop_reason: 'max_tokens',
+              usage: { output_tokens: 64000, output_tokens_details: { thinking_tokens: 64000 } },
+              content: [{ type: 'thinking', thinking: '' }],
+            }),
+          };
+        },
+      },
+    };
+  };
+
+  it('MAX_OUTPUT_TOKENS is 64000 (streaming budget; 16000 truncated a live P3)', () => {
+    assert.equal(MAX_OUTPUT_TOKENS, 64000);
+  });
+
+  it('the call actually requests that budget', async () => {
+    const client = stubClient([modelOutput()]);
+    await generateQuestion(baseRequest(), { client });
+    assert.equal(client.calls[0].max_tokens, MAX_OUTPUT_TOKENS);
+  });
+
+  it('truncation is reported as a budget failure, not "no structured output"', async () => {
+    await assert.rejects(
+      () => generateQuestion(baseRequest(), { client: truncatedClient() }),
+      (e) => e.status === 502
+        && e.stopReason === 'max_tokens'
+        && /ran out of output space/i.test(e.message)
+        && !/structured output/i.test(e.message)
+    );
+  });
+
+  it('the message is actionable for a teacher', async () => {
+    await generateQuestion(baseRequest(), { client: truncatedClient() }).then(
+      () => assert.fail('should have thrown'),
+      (e) => assert.match(e.message, /smaller mark target/i)
+    );
+  });
+
+  it('a thinking-only response without max_tokens still reports no output', async () => {
+    const client = { messages: { stream: () => ({ finalMessage: async () => ({ stop_reason: 'end_turn', content: [{ type: 'thinking', thinking: '' }] }) }) } };
+    await assert.rejects(
+      () => generateQuestion(baseRequest(), { client }),
+      (e) => e.status === 502 && /no structured output/i.test(e.message)
+    );
+  });
+});
+
 describe('generate — malformed model output', () => {
   it('no text block yields 502', async () => {
-    const client = { messages: { create: async () => ({ content: [] }) } };
+    const client = { messages: { stream: () => ({ finalMessage: async () => ({ content: [] }) }) } };
     await assert.rejects(() => generateQuestion(baseRequest(), { client }), (e) => e.status === 502);
   });
 
   it('non-JSON text yields 502', async () => {
-    const client = { messages: { create: async () => ({ content: [{ type: 'text', text: 'not json' }] }) } };
+    const client = { messages: { stream: () => ({ finalMessage: async () => ({ content: [{ type: 'text', text: 'not json' }] }) }) } };
     await assert.rejects(() => generateQuestion(baseRequest(), { client }), (e) => e.status === 502);
   });
 });

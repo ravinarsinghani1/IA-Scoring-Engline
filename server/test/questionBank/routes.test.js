@@ -43,13 +43,15 @@ function stubClient(payloads) {
   return {
     calls,
     messages: {
-      create: async (args) => {
+      stream: (args) => {
         calls.push(args);
         return {
-          content: [{
-            type: 'text',
-            text: JSON.stringify(payloads[Math.min(calls.length - 1, payloads.length - 1)]),
-          }],
+          finalMessage: async () => ({
+            content: [{
+              type: 'text',
+              text: JSON.stringify(payloads[Math.min(calls.length - 1, payloads.length - 1)]),
+            }],
+          }),
         };
       },
     },

@@ -416,15 +416,157 @@ describe('§10 items 7 & 10 — semantic items are reported as unverified', () =
     assert.match(msg, /late/);
   });
 
-  it('a missing accuracy convention warns', () => {
+  // NOTE: this originally asserted that ANY missing convention warns, including
+  // for the exact answer "v(3) = 12". That encoded the pre-fix behaviour, which
+  // wrongly demanded "3 s.f." of exact results. The rule is now: warn only when
+  // a decimal answer shows rounding is genuinely involved.
+  it('a decimal answer with no stated convention warns', () => {
+    const q = valid();
+    q.parts[0].prompt = 'Find the velocity when t = 3.';
+    q.parts[0].markSchemeLines[1].text = 'v(3) = 12.4';
+    assert.ok(hasWarn(validateQuestion(q), 'accuracy-convention'));
+  });
+
+  it('an exact answer with no stated convention does NOT warn', () => {
     const q = valid();
     q.parts[0].prompt = 'Find the velocity when t = 3.';
     q.parts[0].markSchemeLines[1].text = 'v(3) = 12';
-    assert.ok(hasWarn(validateQuestion(q), 'accuracy-convention'));
+    assert.equal(hasWarn(validateQuestion(q), 'accuracy-convention'), false);
   });
 
   it('originality always warns as a standing manual spot-check', () => {
     assert.ok(hasWarn(validateQuestion(valid()), 'originality'));
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Regression fixtures from the FIRST LIVE GENERATION (AA SL P1, SL2.7).
+// Reproduced verbatim from real model output. All three warnings it produced
+// were miscalibrations in this validator, not defects in the question — the
+// mathematics was independently verified correct.
+// ---------------------------------------------------------------------------
+const liveAaSlDiscriminant = () => ({
+  course: 'AA', level: 'SL', paper: 'P1',
+  calculatorAllowed: false,
+  difficultyPosition: 'early',
+  subtopicCodes: ['SL2.7'],
+  totalMarks: 6,
+  totalLine: 'Total: [6 marks]',
+  parts: [
+    {
+      label: '(a)', commandTerm: 'Show that', marks: 2,
+      prompt: 'The quadratic equation x² + (k − 2)x + (2k + 1) = 0, where k ∈ ℝ, has two equal roots for certain values of k. Show that the discriminant of the equation is given by Δ = k² − 12k.',
+      allocationLine: '[M1 for correct substitution into b² − 4ac, A1 for correct expansion leading to the given result — 2 marks]',
+      markSchemeLines: [
+        { annotation: 'M1', text: 'Δ = (k − 2)² − 4(1)(2k + 1)' },
+        { annotation: 'A1', text: '= k² − 4k + 4 − 8k − 4 = k² − 12k  (AG)' },
+      ],
+    },
+    {
+      label: '(b)', commandTerm: 'Find', marks: 2,
+      prompt: 'Hence find the values of k for which the equation has two equal roots.',
+      allocationLine: '[M1 for setting the discriminant equal to zero and solving, A1 for both correct values of k — 2 marks]',
+      markSchemeLines: [
+        { annotation: 'M1', text: 'Equal roots ⇒ Δ = 0, so k² − 12k = 0 ⇒ k(k − 12) = 0' },
+        { annotation: 'A1', text: 'k = 0 or k = 12' },
+      ],
+    },
+    {
+      label: '(c)', commandTerm: 'Determine', marks: 2,
+      prompt: 'For each value of k found in part (b), determine the corresponding repeated root of the equation.',
+      allocationLine: '[M1 for substituting each value of k and recognising the resulting perfect square, A1 for both correct roots — 2 marks]',
+      markSchemeLines: [
+        { annotation: 'M1', text: 'k = 0: x² − 2x + 1 = 0 ⇒ (x − 1)² = 0;  k = 12: x² + 10x + 25 = 0 ⇒ (x + 5)² = 0' },
+        { annotation: 'A1', text: 'Repeated roots: x = 1 (when k = 0) and x = −5 (when k = 12)' },
+      ],
+    },
+  ],
+});
+
+describe('live-output regressions — AA SL discriminant question', () => {
+  it('still passes validation with no errors', () => {
+    const r = validateQuestion(liveAaSlDiscriminant());
+    assert.ok(r.ok, JSON.stringify(r.errors));
+  });
+
+  it('FIX 1: inline "(AG)" in the answer line satisfies "Show that"', () => {
+    const r = validateQuestion(liveAaSlDiscriminant());
+    const agWarn = r.warnings.find((w) => /would normally carry AG/.test(w.message));
+    assert.equal(agWarn, undefined, 'inline (AG) was not recognised');
+  });
+
+  it('FIX 1: "Show that" with NO AG anywhere still warns', () => {
+    const q = liveAaSlDiscriminant();
+    q.parts[0].markSchemeLines[1].text = '= k² − 4k + 4 − 8k − 4 = k² − 12k';   // AG removed
+    const r = validateQuestion(q);
+    assert.ok(r.warnings.some((w) => /would normally carry AG/.test(w.message)));
+  });
+
+  it('FIX 1: a standalone AG annotation is still accepted', () => {
+    const q = liveAaSlDiscriminant();
+    q.parts[0].markSchemeLines[1] = { annotation: 'AG', text: 'k² − 12k' };
+    q.parts[0].marks = 1;
+    q.parts[0].allocationLine = '[M1 for substitution — 1 mark]';
+    q.totalMarks = 5; q.totalLine = 'Total: [5 marks]';
+    const r = validateQuestion(q);
+    assert.equal(r.warnings.some((w) => /would normally carry AG/.test(w.message)), false);
+  });
+
+  it('FIX 2: an all-exact question raises no accuracy-convention warning', () => {
+    const r = validateQuestion(liveAaSlDiscriminant());
+    assert.equal(hasWarn(r, 'accuracy-convention'), false,
+      'demanded an accuracy convention for exact integer answers');
+  });
+
+  it('FIX 2: a decimal answer with no stated convention DOES warn', () => {
+    const q = liveAaSlDiscriminant();
+    q.parts[1].markSchemeLines[1].text = 'k = 0 or k = 12.47';
+    assert.ok(hasWarn(validateQuestion(q), 'accuracy-convention'));
+  });
+
+  it('FIX 2: a decimal answer WITH a stated convention does not warn', () => {
+    const q = liveAaSlDiscriminant();
+    q.parts[1].markSchemeLines[1].text = 'k = 0 or k = 12.47 (3 s.f.)';
+    assert.equal(hasWarn(validateQuestion(q), 'accuracy-convention'), false);
+  });
+
+  it('FIX 3: prompt says "Hence find" but commandTerm is "Find" — drift is flagged', () => {
+    const r = validateQuestion(liveAaSlDiscriminant());
+    const drift = r.warnings.find((w) => w.check === 'command-term-drift');
+    assert.ok(drift, 'command-term drift went undetected');
+    assert.equal(drift.detail.declared, 'Find');
+    assert.equal(drift.detail.inPrompt, 'Hence');
+  });
+
+  it('FIX 3: declaring "Hence" for a "Hence" prompt does not drift', () => {
+    const q = liveAaSlDiscriminant();
+    q.parts[1].commandTerm = 'Hence';
+    assert.equal(hasWarn(validateQuestion(q), 'command-term-drift'), false);
+  });
+
+  it('FIX 3: "Hence or otherwise" is not mistaken for bare "Hence"', () => {
+    const q = liveAaSlDiscriminant();
+    q.parts[1].prompt = 'Hence or otherwise, find the values of k.';
+    q.parts[1].commandTerm = 'Hence or otherwise';
+    assert.equal(hasWarn(validateQuestion(q), 'command-term-drift'), false);
+
+    q.parts[1].commandTerm = 'Hence';   // now genuinely wrong
+    const drift = validateQuestion(q).warnings.find((w) => w.check === 'command-term-drift');
+    assert.equal(drift.detail.inPrompt, 'Hence or otherwise');
+  });
+
+  it('FIX 3: a prompt with no method-locking language never drifts', () => {
+    const q = liveAaSlDiscriminant();
+    assert.equal(
+      validateQuestion(q).warnings.filter((w) => w.check === 'command-term-drift' && w.message.includes('(c)')).length,
+      0
+    );
+  });
+
+  it('drift is a warning, never a blocking error', () => {
+    const r = validateQuestion(liveAaSlDiscriminant());
+    assert.equal(r.errors.some((e) => e.check === 'command-term-drift'), false);
+    assert.ok(r.ok);
   });
 });
 

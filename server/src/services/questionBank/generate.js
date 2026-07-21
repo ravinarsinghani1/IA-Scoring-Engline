@@ -37,6 +37,23 @@ export const QUESTION_BANK_MODEL = process.env.QUESTION_BANK_MODEL || SCORING_MO
  */
 export const MAX_GENERATION_ATTEMPTS = 2;
 
+/**
+ * Output-token ceiling for one generation call.
+ *
+ * This budget is SHARED WITH ADAPTIVE THINKING, so it is not just the size of
+ * the question. Two live failures proved the point: at 8000 a 15-mark Section B
+ * request spent the entire allowance on thinking; at 16000 a 20-mark Paper 3
+ * request did the same (thinking_tokens 15998/16000), both stopping with
+ * stop_reason=max_tokens before emitting a single text block.
+ *
+ * Note there is no way to cap thinking directly — `budget_tokens` is REMOVED on
+ * Sonnet 5 and returns a 400. `effort` is the only depth lever, and we keep it
+ * at "high" because the hardest papers are exactly where quality matters. So the
+ * fix is headroom, which in turn requires streaming: non-streaming requests risk
+ * SDK HTTP timeouts above ~16k, while streaming is safe to the model's 128k cap.
+ */
+export const MAX_OUTPUT_TOKENS = 64000;
+
 const SYSTEM_PROMPT = `You are an experienced IB Diploma Programme Mathematics examiner writing practice questions for teachers.
 
 You write ORIGINAL questions that follow IB examination conventions. This is the single most important constraint:
@@ -160,6 +177,24 @@ Re-read the constraints and produce a question that satisfies all of them. Do no
 
 /** Extract and parse the model's structured JSON output. */
 function parseModelOutput(response) {
+  // Truncation is a BUDGET failure, not a format failure. Reporting it as
+  // "no structured output" sent us looking at the schema when the real cause
+  // was the thinking budget consuming max_tokens before any answer was
+  // written. Name it precisely so the next person does not repeat that.
+  if (response?.stop_reason === 'max_tokens') {
+    const err = new Error(
+      'Question generation ran out of output space before completing. Try a smaller mark target.'
+    );
+    err.status = 502;
+    err.expose = true;
+    err.stopReason = 'max_tokens';
+    console.error('[question-bank] generation truncated at max_tokens', {
+      usage: response?.usage,
+      blockTypes: response?.content?.map((b) => b.type),
+    });
+    throw err;
+  }
+
   const textBlock = response?.content?.find((b) => b.type === 'text');
   if (!textBlock) {
     const err = new Error('Question generator returned no structured output.');
@@ -181,6 +216,39 @@ function badRequest(message) {
   const err = new Error(message);
   err.status = 400;
   err.expose = true;
+  return err;
+}
+
+/**
+ * Map an upstream Anthropic failure to a safe, correctly-attributed error.
+ *
+ * The SDK surfaces provider problems with client-ish statuses — a billing
+ * lapse arrives as 400 with "Please go to Plans & Billing…". Passing that
+ * through would (a) blame the caller for our outage and (b) leak vendor
+ * billing detail into a teacher-facing response. Upstream failures are OUR
+ * problem: they become 502/503 with a generic message, and the real detail is
+ * logged server-side only.
+ */
+function upstreamError(cause) {
+  const status = cause?.status;
+  // 429 / 529 / 5xx are transient — advertise retry-later. Everything else
+  // (auth, billing, malformed request to the provider) is a bad gateway.
+  const transient = status === 429 || status === 529 || (status >= 500 && status < 600);
+
+  console.error('[question-bank] upstream generation failure', {
+    upstreamStatus: status,
+    requestId: cause?.request_id ?? cause?.headers?.['request-id'],
+    message: cause?.message,
+  });
+
+  const err = new Error(
+    transient
+      ? 'Question generation is temporarily unavailable. Please try again shortly.'
+      : 'Question generation is unavailable right now. Please contact your administrator.'
+  );
+  err.status = transient ? 503 : 502;
+  err.expose = true;   // the message above is safe by construction
+  err.cause = cause;   // retained for logs, never serialised to the client
   return err;
 }
 
@@ -242,14 +310,25 @@ export async function generateQuestion(request, deps = {}) {
   let lastErrors = [];
 
   for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt++) {
-    const response = await client.messages.create({
-      model: QUESTION_BANK_MODEL,
-      max_tokens: 8000,
-      thinking: { type: 'adaptive' },
-      output_config: { effort: 'high', format: { type: 'json_schema', schema } },
-      system: SYSTEM_PROMPT,
-      messages,
-    });
+    let response;
+    try {
+      // Streaming is REQUIRED at this budget: a non-streaming request with
+      // max_tokens well above ~16k risks an SDK HTTP timeout. finalMessage()
+      // gives us the assembled Message, so nothing downstream has to change.
+      const stream = client.messages.stream({
+        model: QUESTION_BANK_MODEL,
+        max_tokens: MAX_OUTPUT_TOKENS,
+        thinking: { type: 'adaptive' },
+        output_config: { effort: 'high', format: { type: 'json_schema', schema } },
+        system: SYSTEM_PROMPT,
+        messages,
+      });
+      response = await stream.finalMessage();
+    } catch (cause) {
+      // An upstream failure is not a validation failure: do NOT burn a retry
+      // attempt on it, and do not surface provider detail to the caller.
+      throw upstreamError(cause);
+    }
 
     const generated = parseModelOutput(response);
 
@@ -270,6 +349,17 @@ export async function generateQuestion(request, deps = {}) {
 
     lastErrors = result.errors;
     if (attempt < MAX_GENERATION_ATTEMPTS) {
+      // Log WHICH §10 rules the model broke. Without this the retry is
+      // invisible: a question that needed a second attempt looks identical to
+      // one that passed first time, so we would never learn which constraints
+      // the model reliably struggles with. Lightweight on purpose.
+      console.warn('[question-bank] validation failed, retrying', {
+        attempt,
+        course, level, paper,
+        subtopicCodes,
+        checks: result.errors.map((e) => e.check),
+        messages: result.errors.map((e) => e.message),
+      });
       messages.push({ role: 'assistant', content: JSON.stringify(generated) });
       messages.push({ role: 'user', content: buildCorrection(result.errors) });
     }
