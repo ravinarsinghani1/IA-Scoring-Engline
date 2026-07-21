@@ -14,6 +14,7 @@ import explorationsRouter from './routes/explorations.js';
 import draftsRouter from './routes/drafts.js';
 import validationRouter from './routes/validation.js';
 import foldersRouter from './routes/folders.js';
+import questionBankRouter from './routes/questionBank.js';
 import { requireAuth, requireProfile } from './middleware/requireAuth.js';
 
 const app = express();
@@ -36,6 +37,7 @@ app.use('/api/folders', requireAuth, requireProfile, foldersRouter);
 app.use('/api/explorations', requireAuth, requireProfile, explorationsRouter);
 app.use('/api/drafts', requireAuth, requireProfile, draftsRouter);
 app.use('/api/validation', requireAuth, requireProfile, validationRouter);
+app.use('/api/question-bank', requireAuth, requireProfile, questionBankRouter);
 
 // 404 for unknown API routes
 app.use('/api', (_req, res) => res.status(404).json({ error: 'not found' }));

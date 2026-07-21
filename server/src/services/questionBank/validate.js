@@ -210,6 +210,10 @@ export function validateQuestion(question, options = {}) {
   // --- §10 item 3 / §5.7: calculator, checked STRUCTURALLY ---------------
   // The blocking check compares the declared field against paperTypes. Prose is
   // only ever an advisory cross-check below.
+  // NOTE: this is a NO-OP on the generation path — generate.js injects
+  // calculatorAllowed from paperTypes itself, so it cannot disagree here. It
+  // meaningfully checks only hand-built or imported questions. Do not read a
+  // pass as live verification of generated output.
   if (paperType) {
     const expected = allowsCalculator(course, level, paper);
     if (typeof calculatorAllowed !== 'boolean') {
