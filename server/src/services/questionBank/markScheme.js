@@ -102,6 +102,54 @@ export function annotationMarkTotal(annotation) {
   return parseAnnotation(annotation).reduce((sum, t) => sum + t.marks, 0);
 }
 
+// --- §5.5 alternative-method labelling ------------------------------------
+//
+// Where a genuine alternative approach exists, the mark scheme labels each
+// route. Two conventions are permitted, and a single part must not mix them:
+//   numbered   METHOD 1 / METHOD 2 / METHOD 3 ...
+//   either-or  EITHER / OR   (exactly two routes)
+//
+// NOTE: implemented from the labelling conventions supplied with the contract
+// revision. The full §5.5 text was not available; if it constrains this
+// further (e.g. when an alternative counts as "genuine"), revisit.
+
+export const METHOD_LABEL_STYLES = {
+  NUMBERED: 'numbered',
+  EITHER_OR: 'either-or',
+};
+
+export const EITHER_OR_LABELS = ['EITHER', 'OR'];
+
+const NUMBERED_LABEL_RE = /^METHOD\s+(\d+)$/i;
+
+/**
+ * Classify a set of alternative-method labels.
+ * @returns {'numbered'|'either-or'|null} null when the labels are invalid,
+ *          inconsistent, or mix the two conventions.
+ */
+export function methodLabelStyle(labels) {
+  if (!Array.isArray(labels) || labels.length < 2) return null;
+  const upper = labels.map((l) => String(l).trim().toUpperCase());
+
+  if (upper.join('|') === EITHER_OR_LABELS.join('|')) return METHOD_LABEL_STYLES.EITHER_OR;
+
+  const numbers = upper.map((l) => {
+    const m = l.match(NUMBERED_LABEL_RE);
+    return m ? Number(m[1]) : null;
+  });
+  if (numbers.every((n) => n !== null)) {
+    // Must be sequential from 1: METHOD 1, METHOD 2, ...
+    const sequential = numbers.every((n, i) => n === i + 1);
+    return sequential ? METHOD_LABEL_STYLES.NUMBERED : null;
+  }
+  return null;
+}
+
+/** True when a label set is a valid, self-consistent §5.5 convention. */
+export function isValidMethodLabelSet(labels) {
+  return methodLabelStyle(labels) !== null;
+}
+
 // --- §2.4 output format ---------------------------------------------------
 //
 // Every sub-part ends with a bracketed allocation line, e.g.
