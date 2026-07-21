@@ -1,6 +1,4 @@
-// TODO(tests): the verification script for this module (term lookup, longest-
-// match ordering, heuristic expectations) exists in the session scratchpad ONLY
-// and is NOT committed. Promote it once a test runner is added.
+// Tests: server/test/questionBank/validate.test.js  (run: npm test, from server/)
 //
 // IB command terms — the subset the rulebook defines explicitly.
 //

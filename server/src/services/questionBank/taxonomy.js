@@ -1,7 +1,4 @@
-// TODO(tests): the verification scripts that check this module (entry counts,
-// code/level integrity, the kinematics traps, the SL-never-yields-AHL rule)
-// exist in the session scratchpad ONLY and are NOT committed. Promote them to
-// real tests once a test runner is added to the repo.
+// Tests: server/test/questionBank/taxonomy.test.js  (run: npm test, from server/)
 //
 // Rulebook §8 — IB Mathematics topic / sub-topic taxonomy (AA + AI, complete).
 //

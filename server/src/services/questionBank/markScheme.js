@@ -1,6 +1,4 @@
-// TODO(tests): the verification script for this module (annotation parsing,
-// mark totals, §2.4 format patterns) exists in the session scratchpad ONLY and
-// is NOT committed. Promote it to a real test once a test runner is added.
+// Tests: server/test/questionBank/markScheme.test.js  (run: npm test, from server/)
 //
 // Rulebook §5.1 / §5.2 — mark-scheme annotation codes and chaining rules,
 // plus the §2.4 output format every generated mark scheme must follow.

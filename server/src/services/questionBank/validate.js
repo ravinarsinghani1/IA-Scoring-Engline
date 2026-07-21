@@ -1,6 +1,4 @@
-// TODO(tests): the verification script for this module (every §10 item, both
-// pass and fail paths) exists in the session scratchpad ONLY and is NOT
-// committed. Promote it to a real test once a test runner is added.
+// Tests: server/test/questionBank/validate.test.js  (run: npm test, from server/)
 //
 // Rulebook §10 — validation checklist, run before returning any generated
 // question or worksheet. Also carries the §2.3 hard guarantee.

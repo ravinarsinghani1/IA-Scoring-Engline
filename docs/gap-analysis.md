@@ -181,6 +181,9 @@ a separate product surface, not because it is blocked by 2–6.
    to a later phase, not included now**: (i) attempt-tracking, (ii) weak-topic targeting,
    and (iii) past-paper-statistics comparison. These are out of scope for the first
    release — do not build them into Phase 7 without a separate decision to expand scope.
+6. **Calculator-specific instructions (§2.6): decided out of scope for v1** — no generated
+   keystroke sequences, given accuracy risk across calculator models/firmware. Revisit only
+   with verified vendor documentation as a source.
 
 ---
 

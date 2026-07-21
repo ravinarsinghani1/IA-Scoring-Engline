@@ -1,6 +1,4 @@
-// TODO(tests): the verification script for this module (budgets, calculator
-// policy, availability rules) exists in the session scratchpad ONLY and is NOT
-// committed. Promote it to a real test once a test runner is added.
+// Tests: server/test/questionBank/paperTypes.test.js  (run: npm test, from server/)
 //
 // Paper structure: mark budget, duration and calculator policy per
 // course / level / paper. Feeds:

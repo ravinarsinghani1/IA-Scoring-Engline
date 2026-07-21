@@ -1,7 +1,4 @@
-// TODO(tests): the verification scripts that check this module (hours matching
-// the §2.1 table, derived weights summing to 1, allocateByWeight summing
-// exactly, sampleTopic distribution) exist in the session scratchpad ONLY and
-// are NOT committed. Promote them to real tests once a test runner is added.
+// Tests: server/test/questionBank/weighting.test.js  (run: npm test, from server/)
 //
 // Rulebook §2.1 — topic weighting derived from prescribed teaching hours.
 //
