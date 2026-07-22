@@ -58,6 +58,24 @@ function stubClient(payloads) {
   };
 }
 
+/** Read a completed SSE response into [{ event, data }] (comments ignored). */
+async function readSSE(res) {
+  const text = await res.text();
+  const events = [];
+  for (const frame of text.split('\n\n')) {
+    let event = 'message';
+    const dataLines = [];
+    for (const line of frame.split('\n')) {
+      if (line.startsWith('event:')) event = line.slice(6).trim();
+      else if (line.startsWith('data:')) dataLines.push(line.slice(5).trim());
+    }
+    if (dataLines.length) events.push({ event, data: JSON.parse(dataLines.join('\n')) });
+  }
+  return events;
+}
+
+const validBody = { course: 'AA', level: 'SL', paper: 'P2', subtopicCodes: ['SL5.9'], difficultyPosition: 'mid' };
+
 /** Start an express app on an ephemeral port; returns { url, close }. */
 async function serve(target) {
   const server = await new Promise((resolve) => {
@@ -193,7 +211,7 @@ describe('router behaviour (auth bypassed)', () => {
     });
   });
 
-  describe('POST /generate — success path over real HTTP (stubbed model only)', () => {
+  describe('POST /generate — SSE success path over real HTTP (stubbed model only)', () => {
     let e2e, client;
     before(async () => {
       client = stubClient([modelOutput()]);
@@ -211,79 +229,124 @@ describe('router behaviour (auth bypassed)', () => {
     const post = () => fetch(`${e2e.url}/qb/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        course: 'AA', level: 'SL', paper: 'P2',
-        subtopicCodes: ['SL5.9'], difficultyPosition: 'mid',
-      }),
+      body: JSON.stringify(validBody),
     });
 
-    it('returns 201 with the { question, warnings, meta } shape', async () => {
+    it('responds 200 text/event-stream and ends with one done event', async () => {
       const res = await post();
-      assert.equal(res.status, 201);
-      const body = await res.json();
-      assert.deepEqual(Object.keys(body).sort(), ['meta', 'question', 'warnings']);
-      assert.ok(Array.isArray(body.warnings));
-      assert.equal(typeof body.question, 'object');
+      assert.equal(res.status, 200);
+      assert.match(res.headers.get('content-type'), /text\/event-stream/);
+      const events = await readSSE(res);
+      assert.equal(events.at(-1).event, 'done');
+      assert.equal(events.some((e) => e.event === 'error'), false);
+      const done = events.at(-1).data;
+      assert.deepEqual(Object.keys(done).sort(), ['meta', 'question', 'warnings']);
     });
 
-    it('the question survives the round trip with injected fields intact', async () => {
-      const body = await (await post()).json();
-      const q = body.question;
+    it('progress events carry lifecycle phases only — never model content', async () => {
+      const events = await readSSE(await post());
+      const progress = events.filter((e) => e.event === 'progress');
+      assert.ok(progress.some((p) => p.data.phase === 'generating'));
+      assert.ok(progress.some((p) => p.data.phase === 'validating'));
+      for (const p of progress) assert.equal('question' in p.data, false);
+    });
+
+    it('the done question survives with injected fields intact', async () => {
+      const done = (await readSSE(await post())).at(-1).data;
+      const q = done.question;
       assert.equal(q.course, 'AA');
-      assert.equal(q.level, 'SL');
       assert.equal(q.paper, 'P2');
-      assert.equal(q.calculatorAllowed, true);      // derived server-side
+      assert.equal(q.calculatorAllowed, true);   // derived server-side
       assert.equal(q.difficultyPosition, 'mid');
       assert.equal(q.totalMarks, 5);
       assert.equal(q.parts.length, 2);
     });
 
     it('warnings reach the client and stay OUT of the question object', async () => {
-      const body = await (await post()).json();
-      assert.ok(body.warnings.some((w) => w.check === 'originality'),
-        'teacher cannot see the originality review item');
+      const done = (await readSSE(await post())).at(-1).data;
+      assert.ok(done.warnings.some((w) => w.check === 'originality'));
       for (const key of ['warnings', 'errors', 'findings', 'ok']) {
-        assert.equal(key in body.question, false, `question leaked "${key}"`);
+        assert.equal(key in done.question, false, `question leaked "${key}"`);
       }
     });
 
     it('meta reports attempts and flags that review is required', async () => {
-      const body = await (await post()).json();
-      assert.equal(body.meta.attempts, 1);
-      assert.equal(body.meta.warningCount, body.warnings.length);
-      assert.equal(body.meta.reviewRequired, true);
+      const done = (await readSSE(await post())).at(-1).data;
+      assert.equal(done.meta.attempts, 1);
+      assert.equal(done.meta.warningCount, done.warnings.length);
+      assert.equal(done.meta.reviewRequired, true);
     });
 
     it('the real pipeline ran — the model was actually called', async () => {
       const before = client.calls.length;
-      await post();
+      await readSSE(await post());
       assert.equal(client.calls.length, before + 1);
     });
   });
 
-  describe('POST /generate — failure path over real HTTP', () => {
-    it('502 (not a partial question) when both attempts fail validation', async () => {
+  describe('POST /generate — SSE failure path over real HTTP', () => {
+    it('ends with an error event (200 stream, no done, no question) when both attempts fail', async () => {
       const broken = { ...modelOutput(), totalMarks: 99 };   // parts sum to 5
       const a = express();
       a.use(express.json());
       a.use('/qb', createQuestionBankRouter({ client: stubClient([broken, broken]) }));
-      a.use((err, _req, res, _next) => {
-        const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
-        res.status(status).json({ error: status < 500 || err.expose ? err.message : 'internal server error' });
-      });
       const srv = await serve(a);
       try {
         const res = await fetch(`${srv.url}/qb/generate`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            course: 'AA', level: 'SL', paper: 'P2', subtopicCodes: ['SL5.9'],
-          }),
+          body: JSON.stringify(validBody),
         });
-        assert.equal(res.status, 502);
-        const body = await res.json();
-        assert.equal('question' in body, false, 'served unvalidated content');
-        assert.match(body.error, /after 2 attempts/);
+        assert.equal(res.status, 200);   // the STREAM opened fine; the failure is in-band
+        const events = await readSSE(res);
+        const err = events.find((e) => e.event === 'error');
+        assert.ok(err, 'no error event emitted');
+        assert.equal(err.data.status, 502);
+        assert.match(err.data.message, /after 2 attempts/);
+        assert.equal(events.some((e) => e.event === 'done'), false, 'served content despite failure');
+        for (const e of events) assert.equal('question' in (e.data ?? {}), false);
+      } finally {
+        await srv.close();
+      }
+    });
+  });
+
+  describe('POST /generate — client disconnect aborts in-flight work', () => {
+    it('propagates the disconnect into an abort of the model call (no orphaned work)', async () => {
+      let modelAborted = false;
+      const hangingClient = {
+        calls: [],
+        messages: {
+          stream: (_params, opts) => ({
+            // Never resolves on its own — only the caller's abort ends it.
+            finalMessage: () => new Promise((_resolve, reject) => {
+              opts?.signal?.addEventListener('abort', () => {
+                modelAborted = true;
+                reject(Object.assign(new Error('aborted'), { name: 'AbortError' }));
+              });
+            }),
+          }),
+        },
+      };
+      const a = express();
+      a.use(express.json());
+      a.use('/qb', createQuestionBankRouter({ client: hangingClient }));
+      const srv = await serve(a);
+      try {
+        const ac = new AbortController();
+        const inflight = fetch(`${srv.url}/qb/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(validBody),
+          signal: ac.signal,
+        }).catch(() => { /* client-side abort rejects the fetch; expected */ });
+
+        await new Promise((r) => setTimeout(r, 120)); // let the stream open
+        ac.abort();                                    // client hangs up
+        await inflight;
+        await new Promise((r) => setTimeout(r, 120)); // let the server process 'close'
+
+        assert.equal(modelAborted, true, 'server left the model call running after client disconnect');
       } finally {
         await srv.close();
       }

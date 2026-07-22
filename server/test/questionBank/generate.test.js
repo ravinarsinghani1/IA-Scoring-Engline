@@ -8,6 +8,7 @@ import assert from 'node:assert/strict';
 import {
   generateQuestion, buildQuestionSchema, buildInstructions, buildCorrection,
   MAX_GENERATION_ATTEMPTS, QUESTION_BANK_MODEL, MAX_OUTPUT_TOKENS,
+  assertValidRequest,
 } from '../../src/services/questionBank/generate.js';
 
 /** The model-authored half of a valid AA SL P2 question (5 marks). */
@@ -264,6 +265,95 @@ describe('generate — the model call is wired correctly', () => {
     assert.match(system, /NEVER reproduce/i);
     assert.match(system, /real IB paper/i);
     assert.match(system, /conventions/i);   // conventions permitted, content not
+  });
+});
+
+describe('generate — assertValidRequest (shared pre-flight)', () => {
+  it('throws 400 for a malformed request', () => {
+    for (const bad of [{ course: 'XX' }, { course: 'AA', level: 'XL' }, {}]) {
+      assert.throws(() => assertValidRequest(bad), (e) => e.status === 400 && e.expose === true);
+    }
+  });
+
+  it('rejects an AHL sub-topic at SL', () => {
+    assert.throws(
+      () => assertValidRequest({ course: 'AA', level: 'SL', paper: 'P2', subtopicCodes: ['AHL5.13'] }),
+      (e) => e.status === 400
+    );
+  });
+
+  it('returns normalised fields with defaults applied', () => {
+    const norm = assertValidRequest({ course: 'AA', level: 'SL', paper: 'P2', subtopicCodes: ['SL5.9'] });
+    assert.equal(norm.difficultyPosition, 'mid');   // default
+    assert.equal(norm.targetMarks, null);           // default
+    assert.deepEqual(norm.subtopicCodes, ['SL5.9']);
+  });
+});
+
+describe('generate — lifecycle events (onEvent) drive the SSE stream', () => {
+  it('emits generating -> validating on a first-attempt success (no tokens forwarded)', async () => {
+    const events = [];
+    await generateQuestion(baseRequest(), {
+      client: stubClient([modelOutput()]),
+      onEvent: (e) => events.push(e),
+    });
+    assert.ok(events.every((e) => e.type === 'progress'));
+    assert.deepEqual(events.map((e) => `${e.phase}:${e.attempt}`), ['generating:1', 'validating:1']);
+    // The events carry lifecycle only — never model content.
+    for (const e of events) assert.equal('question' in e, false);
+  });
+
+  it('emits a retrying event carrying the failing check codes', async () => {
+    const broken = { ...modelOutput(), totalMarks: 99 };
+    const events = [];
+    await generateQuestion(baseRequest(), {
+      client: stubClient([broken, modelOutput()]),
+      onEvent: (e) => events.push(e),
+    });
+    assert.deepEqual(
+      events.map((e) => `${e.phase}:${e.attempt}`),
+      ['generating:1', 'validating:1', 'retrying:2', 'generating:2', 'validating:2']
+    );
+    const retry = events.find((e) => e.phase === 'retrying');
+    assert.ok(retry.checks.includes('mark-format'), `checks were ${retry.checks}`);
+  });
+
+  it('a missing onEvent is fine (direct callers pass none)', async () => {
+    const r = await generateQuestion(baseRequest(), { client: stubClient([modelOutput()]) });
+    assert.ok(r.question);
+  });
+});
+
+describe('generate — abort on client disconnect (no orphaned work)', () => {
+  it('an already-aborted signal throws before any model call', async () => {
+    const ac = new AbortController();
+    ac.abort();
+    const client = stubClient([modelOutput()]);
+    await assert.rejects(
+      () => generateQuestion(baseRequest(), { client, signal: ac.signal }),
+      (e) => e.aborted === true && e.status === 499
+    );
+    assert.equal(client.calls.length, 0, 'model was called despite an aborted signal');
+  });
+
+  it('an SDK AbortError is reported as an abort, not a 502 upstream failure', async () => {
+    const client = {
+      messages: {
+        stream: () => ({
+          finalMessage: async () => {
+            const e = new Error('aborted');
+            e.name = 'AbortError';
+            throw e;
+          },
+        }),
+      },
+    };
+    const ac = new AbortController();
+    ac.abort();
+    await assert.rejects(
+      () => generateQuestion(baseRequest(), { client, signal: ac.signal }),
+      (e) => e.aborted === true && e.status !== 502
+    );
   });
 });
 

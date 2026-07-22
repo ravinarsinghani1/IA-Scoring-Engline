@@ -1,0 +1,14 @@
+# Rebuilt in-image via `npm ci`
+node_modules
+
+# Not needed at runtime — keep the image lean and secrets out of it
+test
+scripts
+.env
+.env.*
+*.log
+npm-debug.log*
+coverage
+Dockerfile
+.dockerignore
+fly.toml

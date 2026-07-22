@@ -18,7 +18,18 @@ import questionBankRouter from './routes/questionBank.js';
 import { requireAuth, requireProfile } from './middleware/requireAuth.js';
 
 const app = express();
-app.use(cors());
+
+// Once the API runs on its own host (Fly), the SPA calls it cross-origin, so
+// CORS must allow the SPA origin. CORS_ORIGIN is a comma-separated allow-list
+// (e.g. "https://saaryavi.example.com"); unset means reflect any origin, which
+// is fine for local dev and same-origin (Vercel) serving. Credentials are not
+// used — auth is a Bearer token, so no cookies to protect.
+const corsOrigins = (process.env.CORS_ORIGIN ?? '')
+  .split(',')
+  .map((s) => s.trim())
+  .filter(Boolean);
+app.use(cors({ origin: corsOrigins.length > 0 ? corsOrigins : true }));
+
 app.use(express.json({ limit: '5mb' })); // explorations can be long
 
 app.get('/api/health', (_req, res) => {

@@ -252,31 +252,29 @@ function upstreamError(cause) {
   return err;
 }
 
+/** Sentinel thrown when the caller's AbortSignal fires (client disconnected). */
+function abortError() {
+  const err = new Error('Question generation was cancelled.');
+  err.status = 499; // client closed request — nothing to serve, nothing to log loudly
+  err.aborted = true;
+  return err;
+}
+
 /**
- * Generate one validated question.
+ * Validate a generation request and return its normalised fields. Throws a 400
+ * (badRequest) on any problem. Exported so the SSE route can pre-flight the
+ * request and answer a 400 as plain JSON BEFORE committing to an event stream —
+ * a malformed request is not a streaming condition. generateQuestion() also
+ * calls this, so a direct caller is validated identically.
  *
- * @param {object} request
- * @param {'AA'|'AI'} request.course
- * @param {'SL'|'HL'} request.level
- * @param {'P1'|'P2'|'P3'} request.paper
- * @param {string[]} request.subtopicCodes   codes the teacher selected
- * @param {'early'|'mid'|'late'} [request.difficultyPosition='mid']
- * @param {number} [request.targetMarks]
- * @param {object} [deps]
- * @param {object} [deps.client]  injectable Anthropic client (for tests)
- * @returns {Promise<{ question: object, warnings: object[], attempts: number }>}
- *          Warnings are returned SEPARATELY from the question so a teacher can
- *          act on the advisory §10 items; they are never merged into content.
- * @throws  502 when validation fails on every attempt — an invalid question is
- *          never returned.
+ * @returns {{ course, level, paper, subtopicCodes, difficultyPosition, targetMarks }}
  */
-export async function generateQuestion(request, deps = {}) {
+export function assertValidRequest(request) {
   const {
     course, level, paper, subtopicCodes = [],
     difficultyPosition = 'mid', targetMarks = null,
   } = request ?? {};
 
-  // --- request validation: fail fast, before spending a model call ---
   if (course !== 'AA' && course !== 'AI') throw badRequest(`course must be 'AA' or 'AI'.`);
   if (level !== 'SL' && level !== 'HL') throw badRequest(`level must be 'SL' or 'HL'.`);
   if (!findPaperType(course, level, paper)) {
@@ -291,14 +289,45 @@ export async function generateQuestion(request, deps = {}) {
 
   // Every requested code must be legal for this course AND level. This rejects
   // an AHL request at SL before any generation happens.
-  const legal = subtopicsFor(course, level).map((e) => e.code);
-  const legalSet = new Set(legal);
+  const legalSet = new Set(subtopicsFor(course, level).map((e) => e.code));
   const illegal = subtopicCodes.filter((c) => !legalSet.has(c));
   if (illegal.length > 0) {
     throw badRequest(
       `These sub-topics are not available for ${course} ${level}: ${illegal.join(', ')}.`
     );
   }
+
+  return { course, level, paper, subtopicCodes, difficultyPosition, targetMarks };
+}
+
+/**
+ * Generate one validated question.
+ *
+ * @param {object} request  see assertValidRequest for the fields
+ * @param {object} [deps]
+ * @param {object} [deps.client]  injectable Anthropic client (for tests)
+ * @param {(event: object) => void} [deps.onEvent]  lifecycle observer. Receives
+ *          { type: 'progress', phase: 'generating'|'validating'|'retrying',
+ *            attempt, checks? }. Used by the SSE route to stream progress. The
+ *          model's tokens are NEVER forwarded — only these lifecycle events and,
+ *          from the caller, the single VALIDATED result. This is what preserves
+ *          the "never emit unvalidated content" guarantee over a stream.
+ * @param {AbortSignal} [deps.signal]  when it fires (client disconnected), the
+ *          in-flight model call is aborted and no further attempt is made — no
+ *          orphaned server-side work.
+ * @returns {Promise<{ question: object, warnings: object[], attempts: number }>}
+ *          Warnings are returned SEPARATELY from the question so a teacher can
+ *          act on the advisory §10 items; they are never merged into content.
+ * @throws  502 when validation fails on every attempt — an invalid question is
+ *          never returned.
+ */
+export async function generateQuestion(request, deps = {}) {
+  const { onEvent, signal } = deps;
+  const emit = typeof onEvent === 'function' ? onEvent : () => {};
+
+  const {
+    course, level, paper, subtopicCodes, difficultyPosition, targetMarks,
+  } = assertValidRequest(request);
 
   const client = deps.client ?? getAnthropicClient();
   const schema = buildQuestionSchema(subtopicCodes);
@@ -310,26 +339,37 @@ export async function generateQuestion(request, deps = {}) {
   let lastErrors = [];
 
   for (let attempt = 1; attempt <= MAX_GENERATION_ATTEMPTS; attempt++) {
+    if (signal?.aborted) throw abortError();
+    emit({ type: 'progress', phase: 'generating', attempt });
+
     let response;
     try {
       // Streaming is REQUIRED at this budget: a non-streaming request with
       // max_tokens well above ~16k risks an SDK HTTP timeout. finalMessage()
       // gives us the assembled Message, so nothing downstream has to change.
-      const stream = client.messages.stream({
-        model: QUESTION_BANK_MODEL,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        thinking: { type: 'adaptive' },
-        output_config: { effort: 'high', format: { type: 'json_schema', schema } },
-        system: SYSTEM_PROMPT,
-        messages,
-      });
+      // `signal` cancels the in-flight request if the caller disconnects.
+      const stream = client.messages.stream(
+        {
+          model: QUESTION_BANK_MODEL,
+          max_tokens: MAX_OUTPUT_TOKENS,
+          thinking: { type: 'adaptive' },
+          output_config: { effort: 'high', format: { type: 'json_schema', schema } },
+          system: SYSTEM_PROMPT,
+          messages,
+        },
+        signal ? { signal } : undefined
+      );
       response = await stream.finalMessage();
     } catch (cause) {
+      // Distinguish a caller-initiated abort from a genuine provider failure:
+      // an abort is expected teardown, not our outage, so don't map it to 502.
+      if (signal?.aborted || cause?.name === 'AbortError') throw abortError();
       // An upstream failure is not a validation failure: do NOT burn a retry
       // attempt on it, and do not surface provider detail to the caller.
       throw upstreamError(cause);
     }
 
+    emit({ type: 'progress', phase: 'validating', attempt });
     const generated = parseModelOutput(response);
 
     // Inject the fields the model was never asked for. Authoritative.
@@ -359,6 +399,12 @@ export async function generateQuestion(request, deps = {}) {
         subtopicCodes,
         checks: result.errors.map((e) => e.check),
         messages: result.errors.map((e) => e.message),
+      });
+      emit({
+        type: 'progress',
+        phase: 'retrying',
+        attempt: attempt + 1,
+        checks: result.errors.map((e) => e.check),
       });
       messages.push({ role: 'assistant', content: JSON.stringify(generated) });
       messages.push({ role: 'user', content: buildCorrection(result.errors) });

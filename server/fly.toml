@@ -1,0 +1,53 @@
+# Fly.io config for the Saaryavi API (backend only; the SPA stays on Vercel).
+#
+# Sizing decision (confirmed): a single always-on shared-cpu-1x / 512MB machine
+# in syd (~$4/mo), co-located with Supabase in Sydney to preserve the DB
+# locality that commit 17e11bc set up. No persistent volume — the app is
+# stateless at rest (all data lives in Supabase), so OWNERSHIP-SCOPING stays
+# closed and there is nothing to provision here.
+#
+# `app` is a placeholder — set the real name at `fly launch`/`fly deploy`.
+# Secrets (ANTHROPIC_API_KEY, DATABASE_URL, SUPABASE_*) are NEVER in this file;
+# set them with `fly secrets set` at the (paused) deploy step.
+
+app = "saaryavi-api"
+primary_region = "syd"
+
+[build]
+
+[env]
+  PORT = "8080"
+  NODE_ENV = "production"
+  # Set to the SPA origin at deploy, e.g. "https://saaryavi.vercel.app".
+  # Left unset here so local/preview builds reflect any origin.
+  # CORS_ORIGIN = ""
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Always-on: the pilot pays for one machine that never sleeps, so there are
+  # no cold starts and SSE connections are never dropped by a scale-to-zero.
+  auto_stop_machines = "off"
+  auto_start_machines = false
+  min_machines_running = 1
+
+  # SSE holds a connection open for the whole generation (minutes), so bill by
+  # concurrent CONNECTIONS, not requests. 25 concurrent generations is ample
+  # for a pilot; raise before real teacher load.
+  [http_service.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
+
+  # index.js only starts listening after ensureSchema() resolves, so allow a
+  # grace period before the first health probe.
+  [[http_service.checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "25s"
+    method = "GET"
+    path = "/api/health"
+
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"

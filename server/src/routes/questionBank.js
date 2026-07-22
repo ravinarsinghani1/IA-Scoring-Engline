@@ -8,14 +8,28 @@
 //   GET  /api/question-bank/weighting?course=AA&level=SL
 //        §2.1 topic weights derived from teaching hours (never a flat 20%).
 //
-//   POST /api/question-bank/generate
-//        Generate one validated question. The response separates the question
-//        from its advisory warnings so a teacher can act on the manual-review
-//        items (§10 command terms, incline of difficulty, originality) instead
-//        of them being buried in the payload.
+//   POST /api/question-bank/generate   (Server-Sent Events)
+//        Generate one validated question, streamed as SSE. Generation can take
+//        minutes (a 20-mark Paper 3 ~280s), which no serverless/proxy request
+//        timeout tolerates — SSE keeps the connection alive with periodic bytes.
+//
+//        The model's TOKENS ARE NEVER FORWARDED. Output is structured JSON
+//        validated as a whole, and a failed attempt is discarded and retried,
+//        so streaming raw chunks could emit content that never passed §10. The
+//        stream instead carries lifecycle events plus ONE validated payload:
+//          event: progress  data: {"phase":"generating","attempt":1}
+//          event: progress  data: {"phase":"validating","attempt":1}
+//          event: progress  data: {"phase":"retrying","attempt":2,"checks":[...]}
+//          event: done       data: {"question":{...},"warnings":[...],"meta":{...}}
+//          event: error      data: {"status":502,"message":"..."}
+//        The `done` payload is byte-identical to the old 201 body. A malformed
+//        request is answered as a plain 400 JSON BEFORE the stream opens.
+//        On client disconnect the in-flight model call is aborted (no orphaned
+//        work). A comment heartbeat (: ping) every 15s defeats idle timeouts.
 //
 // v1 stores nothing: there is no repository and no migration behind this
-// router (the "generation tool, not a saved library" decision).
+// router (the "generation tool, not a saved library" decision). The SSE
+// refactor persists nothing either — OWNERSHIP-SCOPING stays closed.
 //
 // TESTING SEAM: createQuestionBankRouter({ client }) lets a test inject a stub
 // Anthropic client, so the FULL pipeline (request validation -> generation ->
@@ -27,7 +41,10 @@ import { Router } from 'express';
 import { subtopicsByTopic, COURSES, STUDENT_LEVELS } from '../services/questionBank/taxonomy.js';
 import { topicWeights, totalHours } from '../services/questionBank/weighting.js';
 import { papersFor, calculatorNote } from '../services/questionBank/paperTypes.js';
-import { generateQuestion } from '../services/questionBank/generate.js';
+import { generateQuestion, assertValidRequest } from '../services/questionBank/generate.js';
+
+/** Interval between SSE comment heartbeats, ms. Must beat any proxy idle timeout. */
+const HEARTBEAT_MS = 15_000;
 
 /** Validate the course/level pair shared by the read endpoints. */
 function readCourseLevel(req) {
@@ -91,29 +108,71 @@ export function createQuestionBankRouter(deps = {}) {
   });
 
   router.post('/generate', async (req, res, next) => {
+    // --- Pre-flight: a malformed request is a plain 400, NOT a stream. Do this
+    // before any SSE header so the central error handler can answer normally.
+    let request;
     try {
-      const { course, level, paper, subtopicCodes, difficultyPosition, targetMarks } = req.body ?? {};
+      request = assertValidRequest(req.body ?? {});
+    } catch (err) {
+      return next(err);
+    }
 
-      // generateQuestion performs full request validation and throws 400 with
-      // an exposed message; no need to duplicate those checks here.
-      const { question, warnings, attempts } = await generateQuestion(
-        { course, level, paper, subtopicCodes, difficultyPosition, targetMarks },
-        deps.client ? { client: deps.client } : {}
-      );
+    // --- Commit to SSE.
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no', // defeat proxy response buffering (nginx et al.)
+    });
+    res.flushHeaders?.();
+    res.write(': ok\n\n'); // first bytes now, so the client and proxies see an open stream
+
+    const send = (event, data) => {
+      if (res.writableEnded) return;
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    // Heartbeat: generation can be silent for minutes between progress events;
+    // a periodic comment keeps intermediaries from closing an "idle" stream.
+    const heartbeat = setInterval(() => {
+      if (!res.writableEnded) res.write(': ping\n\n');
+    }, HEARTBEAT_MS);
+    if (heartbeat.unref) heartbeat.unref();
+
+    // Abort the in-flight model call if the client goes away — no orphaned work.
+    const controller = new AbortController();
+    let clientGone = false;
+    res.on('close', () => {
+      clientGone = true;
+      controller.abort();
+    });
+
+    try {
+      const { question, warnings, attempts } = await generateQuestion(request, {
+        ...(deps.client ? { client: deps.client } : {}),
+        signal: controller.signal,
+        onEvent: (e) => send('progress', e),
+      });
 
       // Warnings are a SIBLING of the question, never merged into it: they are
       // advisory/manual-review items the teacher must be able to see and act on.
-      res.status(201).json({
+      send('done', {
         question,
         warnings,
-        meta: {
-          attempts,
-          warningCount: warnings.length,
-          reviewRequired: warnings.length > 0,
-        },
+        meta: { attempts, warningCount: warnings.length, reviewRequired: warnings.length > 0 },
       });
     } catch (err) {
-      next(err);
+      // Client already gone (its own disconnect caused the abort): nothing to
+      // send, and it isn't a server error. Otherwise surface a mapped, safe
+      // error event — never provider detail (generate.js has already sanitised).
+      if (!clientGone && !err.aborted) {
+        const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+        send('error', { status, message: status < 500 || err.expose ? err.message : 'internal server error' });
+        if (status >= 500 && !err.expose) console.error('[question-bank] generate error', err);
+      }
+    } finally {
+      clearInterval(heartbeat);
+      if (!res.writableEnded) res.end();
     }
   });
 
