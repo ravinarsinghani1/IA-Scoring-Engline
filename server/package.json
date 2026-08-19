@@ -16,11 +16,13 @@
     "@anthropic-ai/sdk": "^0.110.0",
     "@supabase/supabase-js": "^2.110.2",
     "cors": "^2.8.5",
+    "docx": "^9.7.1",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
     "jose": "^6.2.3",
     "multer": "^2.2.0",
     "pdf-parse": "^2.4.5",
+    "pdfkit": "^0.19.1",
     "pg": "^8.22.0"
   }
 }

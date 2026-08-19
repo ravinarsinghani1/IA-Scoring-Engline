@@ -27,6 +27,18 @@
 //        On client disconnect the in-flight model call is aborted (no orphaned
 //        work). A comment heartbeat (: ping) every 15s defeats idle timeouts.
 //
+//   POST /api/question-bank/generate-paper   (Server-Sent Events)
+//        Same SSE contract as /generate, but assembles a full, flat (no
+//        Section A/B) paper of multiple independently-generated,
+//        independently-validated questions. Worksheet-first by default
+//        (any target mark total); pass examSimulation:true for the real
+//        per-paper total (80/110/55). See paperBuilder.js.
+//
+//   POST /api/question-bank/export
+//        NOT streamed — pure formatting on already-validated content from
+//        /generate or /generate-paper. Returns a PDF or Word file. See
+//        export.js, including its flagged note on math-notation fidelity.
+//
 // v1 stores nothing: there is no repository and no migration behind this
 // router (the "generation tool, not a saved library" decision). The SSE
 // refactor persists nothing either — OWNERSHIP-SCOPING stays closed.
@@ -42,6 +54,8 @@ import { subtopicsByTopic, COURSES, STUDENT_LEVELS } from '../services/questionB
 import { topicWeights, totalHours } from '../services/questionBank/weighting.js';
 import { papersFor, calculatorNote } from '../services/questionBank/paperTypes.js';
 import { generateQuestion, assertValidRequest } from '../services/questionBank/generate.js';
+import { buildPaper, assertValidPaperRequest } from '../services/questionBank/paperBuilder.js';
+import { renderPaperPdf, renderPaperDocx } from '../services/questionBank/export.js';
 
 /** Interval between SSE comment heartbeats, ms. Must beat any proxy idle timeout. */
 const HEARTBEAT_MS = 15_000;
@@ -173,6 +187,100 @@ export function createQuestionBankRouter(deps = {}) {
     } finally {
       clearInterval(heartbeat);
       if (!res.writableEnded) res.end();
+    }
+  });
+
+  // POST /generate-paper — same SSE contract as /generate, but assembles a
+  // full flat (no Section A/B) paper of multiple independently-validated
+  // questions. See paperBuilder.js for the planning/allocation logic and the
+  // FLAGGED comments on the two judgment calls made there.
+  router.post('/generate-paper', async (req, res, next) => {
+    let request;
+    try {
+      request = assertValidPaperRequest(req.body ?? {});
+    } catch (err) {
+      return next(err);
+    }
+
+    res.writeHead(200, {
+      'Content-Type': 'text/event-stream; charset=utf-8',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no',
+    });
+    res.flushHeaders?.();
+    res.write(': ok\n\n');
+
+    const send = (event, data) => {
+      if (res.writableEnded) return;
+      res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
+    };
+
+    const heartbeat = setInterval(() => {
+      if (!res.writableEnded) res.write(': ping\n\n');
+    }, HEARTBEAT_MS);
+    if (heartbeat.unref) heartbeat.unref();
+
+    const controller = new AbortController();
+    let clientGone = false;
+    res.on('close', () => {
+      clientGone = true;
+      controller.abort();
+    });
+
+    try {
+      const { paper, warnings, meta } = await buildPaper(request, {
+        ...(deps.client ? { client: deps.client } : {}),
+        signal: controller.signal,
+        onEvent: (e) => send('progress', e),
+      });
+      send('done', { paper, warnings, meta: { ...meta, warningCount: warnings.length } });
+    } catch (err) {
+      if (!clientGone && !err.aborted) {
+        const status = err.status && err.status >= 400 && err.status < 600 ? err.status : 500;
+        send('error', { status, message: status < 500 || err.expose ? err.message : 'internal server error' });
+        if (status >= 500 && !err.expose) console.error('[question-bank] generate-paper error', err);
+      }
+    } finally {
+      clearInterval(heartbeat);
+      if (!res.writableEnded) res.end();
+    }
+  });
+
+  // POST /export — pure formatting on already-generated, already-validated
+  // content (a paper from /generate-paper, or a single question from
+  // /generate). No model call, so a normal request/response, not SSE.
+  //   body: { format: 'pdf'|'docx', paper?: {...}, question?: {...}, options?: {...} }
+  //   (see export.js's ExportOptions typedef for `options`)
+  router.post('/export', async (req, res, next) => {
+    try {
+      const { format = 'pdf', paper, question, options = {} } = req.body ?? {};
+      const input = paper ?? question;
+      if (!input) {
+        const err = new Error('Provide `paper` or `question` to export.');
+        err.status = 400;
+        err.expose = true;
+        throw err;
+      }
+      if (format !== 'pdf' && format !== 'docx') {
+        const err = new Error(`format must be 'pdf' or 'docx' (got ${JSON.stringify(format)}).`);
+        err.status = 400;
+        err.expose = true;
+        throw err;
+      }
+
+      const buffer = format === 'pdf'
+        ? await renderPaperPdf(input, options)
+        : await renderPaperDocx(input, options);
+
+      const contentType = format === 'pdf'
+        ? 'application/pdf'
+        : 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Disposition', `attachment; filename="question-bank.${format}"`);
+      res.send(buffer);
+    } catch (err) {
+      next(err);
     }
   });
 
