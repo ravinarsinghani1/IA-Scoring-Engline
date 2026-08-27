@@ -10,10 +10,11 @@ import ExplorationList from '../components/ExplorationList.jsx';
 import ExplorationDetail from '../components/ExplorationDetail.jsx';
 import ValidationView from '../components/ValidationView.jsx';
 import FolderBar from '../components/FolderBar.jsx';
+import QuestionBankHome from '../components/QuestionBankHome.jsx';
 
 export default function Workspace() {
   const { profile, signOut } = useAuth();
-  const [view, setView] = useState('scoring'); // 'scoring' | 'validation'
+  const [view, setView] = useState('scoring'); // 'scoring' | 'validation' | 'question-bank'
   const [folders, setFolders] = useState([]);
   const [folder, setFolder] = useState('all'); // 'all' | folder id (string)
   const [explorations, setExplorations] = useState([]);
@@ -99,6 +100,9 @@ export default function Workspace() {
             <NavTab active={view === 'validation'} onClick={() => setView('validation')}>
               Validation harness
             </NavTab>
+            <NavTab active={view === 'question-bank'} onClick={() => setView('question-bank')}>
+              Question bank
+            </NavTab>
           </nav>
         </div>
       </header>
@@ -145,12 +149,14 @@ export default function Workspace() {
               )}
             </section>
           </div>
-        ) : (
+        ) : view === 'validation' ? (
           <ValidationView
             explorations={explorations}
             onExplorationsChanged={refresh}
             onError={setError}
           />
+        ) : (
+          <QuestionBankHome />
         )}
       </main>
     </div>

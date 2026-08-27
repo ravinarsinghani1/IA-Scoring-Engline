@@ -9,6 +9,13 @@ export function setAccessTokenGetter(fn) {
   accessTokenGetter = fn;
 }
 
+// Exposed so other API clients (e.g. questionBankApi.js, which talks to a
+// different host) can reuse the same Supabase session token without importing
+// the auth context directly.
+export async function getAccessToken() {
+  return accessTokenGetter();
+}
+
 async function authHeaders(base = {}) {
   const token = await accessTokenGetter();
   return token ? { ...base, Authorization: `Bearer ${token}` } : base;
