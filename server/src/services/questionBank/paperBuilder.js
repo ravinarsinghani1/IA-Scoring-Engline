@@ -170,15 +170,27 @@ export function assertValidPaperRequest(request) {
     throw badRequest(`difficultyPosition must be one of ${DIFFICULTY_POSITIONS.join(' | ')}.`);
   }
 
+  // Coerce loosely-typed JSON input at the API boundary rather than trusting
+  // exact JS types from the caller. Two real failure modes this closes:
+  //   - examSimulation as the STRING "false" is TRUTHY in JS (`if ("false")`
+  //     passes) — would silently take the exam-simulation branch instead of
+  //     the worksheet one.
+  //   - targetMarks as a numeric STRING (e.g. "50") fails Number.isInteger,
+  //     which only accepts the actual `number` type — rejecting a value a
+  //     caller would reasonably consider valid.
+  const examSimulationBool = examSimulation === true || examSimulation === 'true';
+  const targetMarksNum =
+    typeof targetMarks === 'string' && targetMarks.trim() !== '' ? Number(targetMarks) : targetMarks;
+
   let resolvedTargetMarks;
-  if (examSimulation) {
+  if (examSimulationBool) {
     // §2.5 opt-in: the REAL exam total, not a caller-supplied value.
     resolvedTargetMarks = examSimulationTarget(course, level, paper, { examSimulation: true }).marks;
   } else {
-    if (!Number.isInteger(targetMarks) || targetMarks < 1) {
+    if (!Number.isInteger(targetMarksNum) || targetMarksNum < 1) {
       throw badRequest('targetMarks (a positive integer) is required unless examSimulation is true.');
     }
-    resolvedTargetMarks = targetMarks;
+    resolvedTargetMarks = targetMarksNum;
   }
 
   const legalCodes = subtopicsFor(course, level).map((e) => e.code);
@@ -197,7 +209,7 @@ export function assertValidPaperRequest(request) {
     pool = new Set(subtopicCodes);
   }
 
-  return { course, level, paper, difficultyPosition, examSimulation, resolvedTargetMarks, pool };
+  return { course, level, paper, difficultyPosition, examSimulation: examSimulationBool, resolvedTargetMarks, pool };
 }
 
 /**
@@ -219,8 +231,19 @@ export function assertValidPaperRequest(request) {
  * @param {AbortSignal} [deps.signal]
  * @returns {Promise<{paper: object, warnings: object[], meta: object}>}
  */
+// FLAGGED FOR REVIEW: how many questions generate concurrently. Each
+// generateQuestion() call is 30s-3min (confirmed by live testing), and until
+// this fix they ran one after another — for a 6-question paper that's the
+// sum of all 6 calls' wall-clock time, easily 5-15+ minutes. Running several
+// in parallel cuts that to roughly the slowest single call instead.
+// 3 is a deliberate guess, not a measured rate limit: it's high enough to
+// meaningfully help, low enough that one paper build can't alone saturate a
+// typical account's requests-per-minute ceiling. Tune this — up if you have
+// headroom and want it faster, down if you see 429 rate-limit errors.
+const PAPER_CONCURRENCY = 3;
+
 export async function buildPaper(request, deps = {}) {
-  const { onEvent, signal } = deps;
+  const { onEvent, signal: callerSignal } = deps;
   const emit = typeof onEvent === 'function' ? onEvent : () => {};
 
   const { course, level, paper, difficultyPosition, examSimulation, resolvedTargetMarks, pool } =
@@ -231,40 +254,77 @@ export async function buildPaper(request, deps = {}) {
 
   emit({ type: 'progress', phase: 'plan', questionCount: sizes.length, targetMarks: resolvedTargetMarks });
 
-  const questions = [];
+  // One internal controller, not the caller's signal directly, so we can
+  // cancel every other still-running question the instant ONE of two things
+  // happens: the client disconnects (chained from callerSignal), or any
+  // single question fails validation on both attempts (no point spending
+  // more tokens generating questions for a paper that's already being
+  // discarded — see the "abort whole paper" contract documented at the top
+  // of this file, unchanged by parallelising).
+  const internalController = new AbortController();
+  if (callerSignal) {
+    if (callerSignal.aborted) internalController.abort();
+    else callerSignal.addEventListener('abort', () => internalController.abort(), { once: true });
+  }
+
+  // Pre-sized so results land at their PLANNED index regardless of which
+  // question happens to finish first — the assembled paper's question order
+  // must stay 1..N as planned, not "whichever the model returned quickest".
+  const questions = new Array(sizes.length);
   const allWarnings = [];
   let totalAttempts = 0;
+  let firstError = null;
 
-  for (let i = 0; i < sizes.length; i++) {
-    if (signal?.aborted) {
-      const err = new Error('Paper generation was cancelled.');
-      err.status = 499;
-      err.aborted = true;
-      throw err;
-    }
+  async function runOne(i) {
+    if (internalController.signal.aborted) return;
     emit({
       type: 'progress', phase: 'question-start',
       questionIndex: i + 1, questionCount: sizes.length,
       subtopicCode: assignment[i], targetMarks: sizes[i],
     });
+    try {
+      const { question, warnings, attempts } = await generateQuestion(
+        {
+          course, level, paper,
+          subtopicCodes: [assignment[i]],
+          difficultyPosition,
+          targetMarks: sizes[i],
+        },
+        {
+          client: deps.client,
+          signal: internalController.signal,
+          onEvent: (e) => emit({ ...e, questionIndex: i + 1, questionCount: sizes.length }),
+        }
+      );
+      questions[i] = { number: i + 1, ...question };
+      for (const w of warnings) allWarnings.push({ questionNumber: i + 1, ...w });
+      totalAttempts += attempts;
+    } catch (err) {
+      // Keep the FIRST real failure. Sibling questions cancelled by the
+      // abort() below will each land here too, as abort errors — don't let
+      // one of those overwrite the actual validation failure that caused it.
+      if (!firstError) firstError = err;
+      internalController.abort();
+    }
+  }
 
-    const { question, warnings, attempts } = await generateQuestion(
-      {
-        course, level, paper,
-        subtopicCodes: [assignment[i]],
-        difficultyPosition,
-        targetMarks: sizes[i],
-      },
-      {
-        client: deps.client,
-        signal,
-        onEvent: (e) => emit({ ...e, questionIndex: i + 1, questionCount: sizes.length }),
-      }
-    );
+  let nextIndex = 0;
+  async function worker() {
+    while (nextIndex < sizes.length) {
+      const i = nextIndex++;
+      await runOne(i);
+    }
+  }
 
-    questions.push({ number: i + 1, ...question });
-    for (const w of warnings) allWarnings.push({ questionNumber: i + 1, ...w });
-    totalAttempts += attempts;
+  const workerCount = Math.min(PAPER_CONCURRENCY, sizes.length);
+  await Promise.all(Array.from({ length: workerCount }, worker));
+
+  if (firstError) throw firstError;
+  if (callerSignal?.aborted) {
+    const err = new Error('Paper generation was cancelled.');
+    err.status = 499;
+    err.aborted = true;
+    throw err;
   }
 
   const actualTotalMarks = questions.reduce((s, q) => s + q.totalMarks, 0);

@@ -108,6 +108,17 @@ describe('prompt guidance is derived from the data', () => {
     for (const r of CHAINING_RULES) assert.ok(g.includes(r), `missing rule: ${r}`);
   });
 
+  // Regression: a live full-paper build failed §10 validation with "Part
+  // d(i): annotations award 3 marks but the part is worth 2" — the model's
+  // own annotation sum drifted from its declared mark value, on a later
+  // sub-part of a long question. Nothing previously told the model to check
+  // this itself; the validator only catches it AFTER the fact.
+  it('explicitly instructs the model to cross-check its own annotation sum against the part marks', () => {
+    assert.match(g, /ADD UP the marks/);
+    assert.match(g, /sum\s+MUST\s+exactly\s+equal\s+this\s+sub-part's\s+declared\s+mark\s+value/);
+    assert.match(g, /drift\s+is\s+most\s+common\s+there/i); // targets the observed later-sub-part failure mode
+  });
+
   it('shows the closing Total line', () => {
     assert.ok(g.includes('Total: [N marks]'));
   });

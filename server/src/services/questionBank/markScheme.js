@@ -217,6 +217,14 @@ Required format for every sub-part:
   - State the GDC/method setup explicitly.
   - Show step-by-step working, not just the final value.
   - Annotate each line with M1/A1/R1 as appropriate.
+  - CRITICAL — before writing the allocation line, ADD UP the marks from
+    every annotation you just wrote for THIS sub-part (M1=1, A1=1, A2=2,
+    R1=1, ...; AG=0). That sum MUST exactly equal this sub-part's declared
+    mark value. If it does not match, do NOT change the mark value — go
+    back and fix the annotations (add, remove, split, or combine mark
+    codes) until they sum to exactly the right total. Do this check for
+    EVERY sub-part, including the last one in a long question — drift is
+    most common there, not in the earlier, shorter sub-parts.
   - End the sub-part with a bracketed allocation, e.g.
       [M1 for correct GDC setup, A1 for answer — 2 marks]
   - After the final sub-part, close the question with:

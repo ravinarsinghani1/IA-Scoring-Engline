@@ -103,6 +103,38 @@ describe('paperBuilder — request validation', () => {
     );
   });
 
+  // Regression: a numeric-STRING targetMarks (e.g. "50", exactly what a raw
+  // <input type="number"> value or an un-coerced form field sends) was
+  // rejected by the old strict `Number.isInteger` check, which only accepts
+  // the actual `number` type — producing "targetMarks is required" even
+  // though a valid value was supplied. See paperBuilder.js's coercion note.
+  it('accepts targetMarks sent as a numeric string, not just a number', () => {
+    const req = assertValidPaperRequest({ ...baseRequest(), targetMarks: '50' });
+    assert.equal(req.resolvedTargetMarks, 50);
+  });
+
+  it('still rejects a non-numeric or empty targetMarks string', () => {
+    assert.throws(() => assertValidPaperRequest({ ...baseRequest(), targetMarks: 'fifty' }), (e) => e.status === 400);
+    assert.throws(() => assertValidPaperRequest({ ...baseRequest(), targetMarks: '' }), (e) => e.status === 400);
+    assert.throws(() => assertValidPaperRequest({ ...baseRequest(), targetMarks: '0' }), (e) => e.status === 400);
+  });
+
+  // Regression: examSimulation as the STRING "false" is TRUTHY in JS
+  // (`if ("false")` passes), which would silently take the exam-simulation
+  // branch instead of the worksheet one and ignore a caller's real
+  // targetMarks entirely.
+  it('the string "false" for examSimulation is treated as false, not truthy', () => {
+    const req = assertValidPaperRequest({ ...baseRequest(), examSimulation: 'false', targetMarks: 33 });
+    assert.equal(req.examSimulation, false);
+    assert.equal(req.resolvedTargetMarks, 33); // the caller's worksheet value, not a real-paper total
+  });
+
+  it('the string "true" for examSimulation is honoured', () => {
+    const req = assertValidPaperRequest({ course: 'AA', level: 'SL', paper: 'P2', examSimulation: 'true' });
+    assert.equal(req.examSimulation, true);
+    assert.equal(req.resolvedTargetMarks, 80); // real AA SL P2 total
+  });
+
   it('accepts a valid restricted pool', () => {
     const req = assertValidPaperRequest({ ...baseRequest(), subtopicCodes: ['SL5.9'] });
     assert.ok(req.pool.has('SL5.9'));
@@ -133,6 +165,51 @@ describe('paperBuilder — planQuestionSizes', () => {
     const sizes = planQuestionSizes(21, { min: 4, max: 20 });
     assert.ok(sizes.every((s) => s >= 4), `sizes ${sizes} contain a sub-min trailing question`);
     assert.equal(sizes.reduce((a, b) => a + b, 0), 21);
+  });
+});
+
+describe('paperBuilder — buildPaper generates questions concurrently, not sequentially', () => {
+  // Real generateQuestion() calls are 30s-3min each (confirmed by live
+  // testing) — running several in parallel is the actual speed fix. This
+  // proves it's genuinely concurrent, not just correctly ordered: an instant
+  // stub can't distinguish "ran in parallel" from "ran fast in sequence", so
+  // this stub holds each call open for a fixed delay and tracks how many are
+  // simultaneously in flight. Sequential execution could never observe more
+  // than 1 concurrent call; this only passes if overlap actually happens.
+  it('runs multiple questions in flight at once, not one-at-a-time', async () => {
+    let concurrent = 0;
+    let maxConcurrent = 0;
+    const calls = [];
+    const client = {
+      calls,
+      messages: {
+        stream: (args) => {
+          calls.push(args);
+          return {
+            finalMessage: async () => {
+              concurrent += 1;
+              maxConcurrent = Math.max(maxConcurrent, concurrent);
+              await new Promise((r) => setTimeout(r, 25)); // hold the call open
+              concurrent -= 1;
+              const codeMatch = args.messages[0].content.match(/^\s*(\S+) \(/m);
+              const marksMatch = args.messages[0].content.match(/approximately (\d+) marks/);
+              return {
+                content: [{
+                  type: 'text',
+                  text: JSON.stringify(modelOutput(codeMatch ? codeMatch[1] : 'SL5.9', marksMatch ? Number(marksMatch[1]) : 20)),
+                }],
+              };
+            },
+          };
+        },
+      },
+    };
+
+    // targetMarks:40 with the real P2 bounds (min 4, max 20) plans exactly 2
+    // questions — both should start together under PAPER_CONCURRENCY=3.
+    await buildPaper({ course: 'AA', level: 'SL', paper: 'P2', targetMarks: 40 }, { client });
+
+    assert.ok(maxConcurrent > 1, `expected overlapping calls, but max concurrent was ${maxConcurrent} — questions ran sequentially`);
   });
 });
 
