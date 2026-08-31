@@ -41,6 +41,22 @@ function sampleSingleQuestion() {
   return samplePaper().questions[0]; // same shape generateQuestion() returns
 }
 
+/** A paper whose prompt/mark-scheme text carries $...$/$$...$$ math — the shape that used to export as literal LaTeX source (see mathRender.js). */
+function paperWithMath() {
+  return {
+    course: 'AA', level: 'SL', paper: 'P1', totalMarks: 3, questionCount: 1,
+    questions: [{
+      number: 1, totalMarks: 3,
+      parts: [{
+        label: '(a)', commandTerm: 'Solve', marks: 3,
+        prompt: 'Solve $x^2 - 5x + 6 = 0$.\n$$x = \\frac{-b \\pm \\sqrt{b^2-4ac}}{2a}$$',
+        allocationLine: '[M1 for $x=2$, A1 for $x=3$ — 3 marks]',
+        markSchemeLines: [{ annotation: 'M1', text: 'for factorising to $(x-2)(x-3)=0$' }],
+      }],
+    }],
+  };
+}
+
 describe('export — input handling', () => {
   it('accepts a multi-question paper shape directly', async () => {
     const buf = await renderPaperPdf(samplePaper());
@@ -83,6 +99,25 @@ describe('export — PDF', () => {
     });
     assert.notEqual(plain.length, withHeader.length);
   });
+
+  it('a prompt/mark-scheme with math produces embedded image XObjects, not literal LaTeX text', async () => {
+    const buf = await renderPaperPdf(paperWithMath(), { includeMarkScheme: true });
+    const body = buf.toString('latin1');
+    // pdfkit embeds a raster image as an XObject with an /Image subtype —
+    // its presence is direct evidence a formula was actually rasterized and
+    // placed, not just left as source text.
+    assert.match(body, /\/Subtype\s*\/Image/);
+    // The raw LaTeX source (with its literal backslash/dollar delimiters)
+    // must NOT appear in the PDF's text-showing operators — it was
+    // math-typeset instead of printed as source. (A crude but sufficient
+    // check: the literal command shouldn't appear as parenthesised PDF text.)
+    assert.ok(!body.includes('(\\frac'), 'raw LaTeX source leaked into the PDF as literal text');
+  });
+
+  it('a paper with no math at all still renders (the still-plain-text code path stays intact)', async () => {
+    const buf = await renderPaperPdf(samplePaper(), { includeMarkScheme: true });
+    assert.equal(buf.subarray(0, 5).toString('ascii'), '%PDF-');
+  });
 });
 
 describe('export — Word (.docx)', () => {
@@ -99,5 +134,15 @@ describe('export — Word (.docx)', () => {
 
   it('rejects unrecognised input with a 400', async () => {
     await assert.rejects(() => renderPaperDocx({ nonsense: true }), (e) => e.status === 400);
+  });
+
+  it('a prompt/mark-scheme with math embeds PNG images in the docx, not literal LaTeX text', async () => {
+    const buf = await renderPaperDocx(paperWithMath(), { includeMarkScheme: true });
+    // docx is a ZIP; a real PNG's own file signature landing inside the
+    // buffer is direct evidence an image was embedded, not just referenced —
+    // stronger than checking file size alone (export.test.js's existing
+    // "larger with mark scheme" checks already cover that dimension).
+    const pngSignature = Buffer.from('89504e470d0a1a0a', 'hex');
+    assert.ok(buf.includes(pngSignature), 'no embedded PNG found in the .docx');
   });
 });
