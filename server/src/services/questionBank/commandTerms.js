@@ -121,6 +121,35 @@ export const COMMAND_TERMS = [
     definition:
       'Propose a plausible answer or hypothesis; open to reasonable variation.',
   },
+
+  // The 5 below are NOT from the internal rulebook's 16 bullets (see
+  // RULEBOOK_BULLET_COUNT) — they're standard IB command terms from the
+  // subject-guide glossary, added to close a real coverage gap: an earlier
+  // UI prototype hardcoded only 6 command terms total, and a review found
+  // these missing from even this file's broader list. Definitions are the
+  // standard IB glossary senses, not rulebook-verbatim (the rulebook never
+  // discusses them), so no `expects` heuristics are attached — same
+  // treatment as any term this file can name but not mechanically check.
+  {
+    term: 'Solve',
+    definition: 'Obtain the answer(s) using algebraic and/or numerical and/or graphical methods.',
+  },
+  {
+    term: 'Compare',
+    definition: 'Give an account of the similarities between two or more items, referring to both (all) of them throughout.',
+  },
+  {
+    term: 'Distinguish',
+    definition: 'Make clear the differences between two or more concepts or items.',
+  },
+  {
+    term: 'Identify',
+    definition: 'Provide an answer from a number of possibilities.',
+  },
+  {
+    term: 'Investigate',
+    definition: 'Observe, study, or make a detailed and systematic examination, in order to establish facts and reach new conclusions.',
+  },
 ];
 
 /** Number of rulebook bullets these 18 entries came from (see header note). */

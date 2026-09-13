@@ -12,6 +12,7 @@ import { questionBankApi } from '../questionBankApi.js';
 import ExportControls from './ExportControls.jsx';
 import { QuestionCard, ViewModeToggle } from './QuestionCard.jsx';
 import AddQuestionPanel from './AddQuestionPanel.jsx';
+import CalculatorStatus from './CalculatorStatus.jsx';
 
 const COURSES = ['AA', 'AI'];
 const LEVELS = ['SL', 'HL'];
@@ -204,6 +205,15 @@ export default function PaperBuilderView() {
               </option>
             ))}
           </select>
+          {/* Course-conditional hint (§10 item 3 — AA's Paper 1 is the one
+              non-calculator paper; AI always uses a calculator). Read-only —
+              never a free toggle a teacher could set inconsistently with the
+              paper actually chosen; see CalculatorStatus below for the exact
+              derived status of the currently-selected paper. */}
+          <p className="mb-1 mt-1 text-xs text-slate-400">
+            {course === 'AA' ? 'Paper 1 is the no-calculator paper.' : 'All papers use a calculator.'}
+          </p>
+          <CalculatorStatus taxonomy={taxonomy} paper={paper} />
 
           <div className="mb-3 rounded-md border border-slate-200 p-3">
             <label className="flex items-start gap-2 text-xs text-slate-600">
@@ -214,7 +224,7 @@ export default function PaperBuilderView() {
                 className="mt-0.5"
               />
               <span>
-                Build the real full paper ({realTotalFor(paper)?.marks ?? '—'} marks) instead of a worksheet
+                Build the real full paper ({realTotalFor(paper)?.marks ?? '—'} marks, {realTotalFor(paper)?.minutes ?? '—'} min) instead of a worksheet
               </span>
             </label>
 

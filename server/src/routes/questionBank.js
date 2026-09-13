@@ -53,6 +53,7 @@ import { Router } from 'express';
 import { subtopicsByTopic, COURSES, STUDENT_LEVELS } from '../services/questionBank/taxonomy.js';
 import { topicWeights, totalHours } from '../services/questionBank/weighting.js';
 import { papersFor, calculatorNote } from '../services/questionBank/paperTypes.js';
+import { COMMAND_TERMS } from '../services/questionBank/commandTerms.js';
 import { generateQuestion, assertValidRequest } from '../services/questionBank/generate.js';
 import { buildPaper, assertValidPaperRequest } from '../services/questionBank/paperBuilder.js';
 import { renderPaperPdf, renderPaperDocx } from '../services/questionBank/export.js';
@@ -105,6 +106,16 @@ export function createQuestionBankRouter(deps = {}) {
     } catch (err) {
       next(err);
     }
+  });
+
+  // GET /command-terms — the full canonical IB command-term list (see
+  // commandTerms.js), for any UI that wants to offer command terms as a
+  // filter/tag set. Not course/level-scoped: the list is the same everywhere.
+  // Exposed via the API specifically so the client never re-hardcodes its own
+  // (shorter, drifted) copy — a real gap found in an earlier UI prototype
+  // that hardcoded only 6 of these.
+  router.get('/command-terms', (_req, res) => {
+    res.json({ commandTerms: COMMAND_TERMS.map((t) => t.term) });
   });
 
   router.get('/weighting', (req, res, next) => {

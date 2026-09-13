@@ -188,6 +188,18 @@ describe('router behaviour (auth bypassed)', () => {
     }
   });
 
+  describe('GET /command-terms', () => {
+    it('returns the full canonical list, not a hardcoded subset', async () => {
+      const res = await fetch(`${bare.url}/qb/command-terms`);
+      assert.equal(res.status, 200);
+      const body = await res.json();
+      assert.ok(body.commandTerms.length >= 23);
+      for (const term of ['Solve', 'Compare', 'Distinguish', 'Identify', 'Investigate', 'Find', 'Show that']) {
+        assert.ok(body.commandTerms.includes(term), `missing ${term}`);
+      }
+    });
+  });
+
   describe('GET /weighting', () => {
     it('returns hour-derived weights, not a flat 20%', async () => {
       const res = await fetch(`${bare.url}/qb/weighting?course=AI&level=SL`);

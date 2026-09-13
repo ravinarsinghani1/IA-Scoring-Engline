@@ -61,9 +61,18 @@ const withAlts = (labels) => {
 };
 
 describe('command terms', () => {
-  it('holds 18 entries drawn from 16 rulebook bullets', () => {
-    assert.equal(COMMAND_TERMS.length, 18);
+  it('holds 18 rulebook-sourced entries drawn from 16 rulebook bullets, plus 5 glossary additions', () => {
+    // Solve/Compare/Distinguish/Identify/Investigate were added later to close
+    // a real coverage gap (see commandTerms.js) — not from the 16-bullet
+    // rulebook, so RULEBOOK_BULLET_COUNT stays 16 rather than growing with them.
+    assert.equal(COMMAND_TERMS.length, 23);
     assert.equal(RULEBOOK_BULLET_COUNT, 16);
+  });
+
+  it('includes the 5 glossary additions', () => {
+    for (const term of ['Solve', 'Compare', 'Distinguish', 'Identify', 'Investigate']) {
+      assert.ok(findCommandTerm(term), `missing ${term}`);
+    }
   });
 
   it('Sketch and Draw carry different definitions', () => {

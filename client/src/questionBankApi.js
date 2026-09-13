@@ -78,6 +78,8 @@ export const questionBankApi = {
     get(`/taxonomy?course=${encodeURIComponent(course)}&level=${encodeURIComponent(level)}`),
   getWeighting: (course, level) =>
     get(`/weighting?course=${encodeURIComponent(course)}&level=${encodeURIComponent(level)}`),
+  /** The full canonical IB command-term list (server-side single source of truth — never hardcode a copy client-side). */
+  getCommandTerms: () => get('/command-terms').then((d) => d.commandTerms),
 
   /**
    * Generate one validated question, streamed over SSE.

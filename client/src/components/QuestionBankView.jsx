@@ -10,6 +10,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { questionBankApi } from '../questionBankApi.js';
 import ExportControls from './ExportControls.jsx';
 import { QuestionCard, ViewModeToggle } from './QuestionCard.jsx';
+import CalculatorStatus from './CalculatorStatus.jsx';
 
 const COURSES = ['AA', 'AI'];
 const LEVELS = ['SL', 'HL'];
@@ -141,7 +142,7 @@ export default function QuestionBankView() {
           <select
             value={paper}
             onChange={(e) => setPaper(e.target.value)}
-            className="mb-3 w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
+            className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-slate-400 focus:outline-none"
           >
             {(taxonomy?.papers ?? []).map((p) => (
               <option key={p.paper} value={p.paper}>
@@ -149,6 +150,14 @@ export default function QuestionBankView() {
               </option>
             ))}
           </select>
+          {/* Course-conditional hint — AA's Paper 1 is the one non-calculator
+              paper; every AI paper always uses a calculator (see paperTypes.js).
+              Updates immediately on course change since it's derived from state,
+              not a separate toggle a teacher could set inconsistently. */}
+          <p className="mb-1 mt-1 text-xs text-slate-400">
+            {course === 'AA' ? 'Paper 1 is the no-calculator paper.' : 'All papers use a calculator.'}
+          </p>
+          <CalculatorStatus taxonomy={taxonomy} paper={paper} />
 
           <label className="mb-1 block text-xs font-medium text-slate-500">
             Sub-topics <span className="text-slate-400">(select one or more)</span>
