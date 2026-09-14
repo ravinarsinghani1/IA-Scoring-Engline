@@ -37,6 +37,22 @@ function getPool() {
       ssl: { rejectUnauthorized: false },
       max: 5, // small pool — serverless/pooled Postgres does the heavy lifting
     });
+
+    // PRODUCTION STABILITY FIX — pg.Pool is an EventEmitter and emits 'error'
+    // for problems on an IDLE client in the pool (a dropped connection, the
+    // backend going away, e.g. Supabase pausing/unpausing) — this is SEPARATE
+    // from a query's own rejection, which individual callers already await
+    // and handle. An EventEmitter's unhandled 'error' event is fatal in
+    // Node.js BY DEFAULT: it throws and crashes the whole process, taking
+    // down every in-flight request for every user, not just the one that
+    // triggered it. Confirmed as the real cause of a live incident: the DB
+    // was unreachable, a request came in, and the server process exited
+    // (Render: "Exited with status 1") — not a query-level 500, a full
+    // process crash. Logging here (not throwing, not silently swallowing)
+    // is the documented node-postgres pattern for this exact event.
+    pool.on('error', (err) => {
+      console.error('[db] pool error (connection dropped/unreachable) — request-level errors are handled separately; this is a background pool event that must not crash the process:', err.message);
+    });
   }
   return pool;
 }
